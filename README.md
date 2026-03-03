@@ -1,9 +1,7 @@
-# Course repository / Repozytorium kursu
+# Course repository
 
 Please read the [documentation](docs/en/index.md) for more information about the course.
 
-Proszę przeczytać [dokumentację](docs/pl/index.md) aby dowiedzieć się więcej o kursie.
+# Links
 
-# Links / Linki
-
-* [Physics Basics Website](https://nowitends.github.io/Physics_Problems)
+- [Physics Basics Website](https://nowitends.github.io/Physics_Problems)
