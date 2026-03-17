@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Range Optimization Simulation</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background-color: #f8f9fa; 
+            padding: 20px; 
+            color: #333;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 1000px;
+            width: 100%;
+        }
+        h2 { margin-top: 0; color: #0d6efd; text-align: center; }
+        p { text-align: center; color: #6c757d; margin-bottom: 20px; }
+        
+        .controls { 
+            display: flex; 
+            justify-content: center;
+            gap: 15px; 
+            margin-bottom: 20px; 
+        }
+        button { 
+            padding: 12px 25px; 
+            font-size: 16px; 
+            font-weight: bold;
+            cursor: pointer; 
+            background-color: #0d6efd; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #0b5ed7; }
+        button:disabled { background-color: #adb5bd; cursor: not-allowed; }
+        #resetBtn { background-color: #6c757d; }
+        #resetBtn:hover { background-color: #5a6268; }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .color-dot { width: 15px; height: 15px; border-radius: 50%; }
+
+        canvas { 
+            background-color: #ffffff; 
+            border: 1px solid #dee2e6; 
+            border-radius: 5px;
+            display: block;
+            width: 100%;
+            height: 400px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td { padding: 10px; border: 1px solid #dee2e6; }
+        th { background-color: #f8f9fa; color: #495057; }
+        .highlight-row { background-color: rgba(13, 110, 253, 0.1); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Optimal Launch Angle: 45°</h2>
+        <p>Launching projectiles at 100 m/s to compare ranges and complementary angles.</p>
+
+        <div class="controls">
+            <button id="startBtn">Launch All Angles</button>
+            <button id="resetBtn">Clear Canvas</button>
+        </div>
+
+        <div class="legend" id="legendContainer">
+            </div>
+
+        <canvas id="simCanvas" width="950" height="400"></canvas>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Launch Angle</th>
+                    <th>Color</th>
+                    <th>Max Height (m)</th>
+                    <th>Total Range (m)</th>
+                    <th>Flight Time (s)</th>
+                </tr>
+            </thead>
+            <tbody id="resultsTable">
+                </tbody>
+        </table>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const legendContainer = document.getElementById('legendContainer');
+        const resultsTable = document.getElementById('resultsTable');
+
+        // Physics Configuration
+        const v0 = 100; // m/s
+        const g = 9.8;  // m/s^2
+        const angles = [15, 30, 45, 60, 75]; // Degrees
+        
+        // Colors mapping to angles
+        const colors = {
+            15: '#fd7e14', // Orange
+            30: '#20c997', // Teal
+            45: '#0d6efd', // Blue (Optimal)
+            60: '#6f42c1', // Purple
+            75: '#d63384'  // Pink
+        };
+
+        // State
+        let projectiles = [];
+        let animationId;
+        let t = 0;
+        let isAnimating = false;
+        const timeStep = 0.04;
+
+        // Scaling (Canvas is 950px wide. Max range is at 45 deg: ~1020m)
+        const scaleX = 950 / 1100; 
+        const scaleY = 400 / 550; // Max height is at 75 deg: ~475m
+        const groundY = 30;
+
+        function initSimulation() {
+            projectiles = angles.map(angle => {
+                const rad = angle * (Math.PI / 180);
+                const v0x = v0 * Math.cos(rad);
+                const v0y = v0 * Math.sin(rad);
+                const flightTime = (2 * v0y) / g;
+                const range = v0x * flightTime;
+                const maxHeight = (v0y * v0y) / (2 * g);
+
+                return {
+                    angle, v0x, v0y, flightTime, range, maxHeight,
+                    color: colors[angle],
+                    active: true,
+                    path: []
+                };
+            });
+
+            buildUI();
+            drawEnvironment();
+        }
+
+        function buildUI() {
+            legendContainer.innerHTML = '';
+            resultsTable.innerHTML = '';
+
+            projectiles.forEach(p => {
+                // Build Legend
+                legendContainer.innerHTML += `
+                    <div class="legend-item">
+                        <div class="color-dot" style="background-color: ${p.color};"></div>
+                        <span>${p.angle}°</span>
+                    </div>
+                `;
+
+                // Build Table
+                const isOptimal = p.angle === 45;
+                resultsTable.innerHTML += `
+                    <tr class="${isOptimal ? 'highlight-row' : ''}">
+                        <td>${p.angle}°</td>
+                        <td><div class="color-dot" style="background-color: ${p.color}; margin: 0 auto;"></div></td>
+                        <td>${p.maxHeight.toFixed(1)}</td>
+                        <td>${p.range.toFixed(1)}</td>
+                        <td>${p.flightTime.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function drawEnvironment() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw Grid
+            ctx.strokeStyle = '#f1f3f5';
+            ctx.lineWidth = 1;
+            for(let x=0; x<1100; x+=100) {
+                const cx = x * scaleX;
+                ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height - groundY); ctx.stroke();
+            }
+            for(let y=0; y<550; y+=100) {
+                const cy = canvas.height - groundY - (y * scaleY);
+                ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); ctx.stroke();
+            }
+
+            // Draw Ground
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - groundY);
+            ctx.lineTo(canvas.width, canvas.height - groundY);
+            ctx.strokeStyle = '#adb5bd';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Distance Markers
+            ctx.fillStyle = '#6c757d';
+            ctx.font = '12px sans-serif';
+            for(let x=200; x<=1000; x+=200) {
+                ctx.fillText(`${x}m`, (x * scaleX) - 10, canvas.height - 10);
+            }
+        }
+
+        function animate() {
+            if (!isAnimating) return;
+
+            drawEnvironment();
+            let allFinished = true;
+
+            projectiles.forEach(p => {
+                let currentT = Math.min(t, p.flightTime);
+                
+                const x = p.v0x * currentT;
+                const y = (p.v0y * currentT) - (0.5 * g * currentT * currentT);
+                
+                // Track path for drawing trails
+                if (currentT === t && t <= p.flightTime) {
+                    p.path.push({x, y});
+                }
+
+                const cx = x * scaleX;
+                const cy = canvas.height - groundY - (y * scaleY);
+
+                // Draw Trail
+                ctx.beginPath();
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                p.path.forEach((pt, i) => {
+                    const px = pt.x * scaleX;
+                    const py = canvas.height - groundY - (pt.y * scaleY);
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.stroke();
+                ctx.setLineDash([]); // reset
+
+                // Draw Projectile
+                ctx.beginPath();
+                ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+
+                if (t < p.flightTime) allFinished = false;
+            });
+
+            if (allFinished) {
+                isAnimating = false;
+                startBtn.disabled = false;
+                return;
+            }
+
+            t += timeStep;
+            animationId = requestAnimationFrame(animate);
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!isAnimating) {
+                t = 0;
+                projectiles.forEach(p => p.path = []);
+                isAnimating = true;
+                startBtn.disabled = true;
+                animate();
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            isAnimating = false;
+            cancelAnimationFrame(animationId);
+            startBtn.disabled = false;
+            t = 0;
+            projectiles.forEach(p => p.path = []);
+            drawEnvironment();
+        });
+
+        // Initialize on load
+        initSimulation();
+
+    </script>
+</body>
+</html>

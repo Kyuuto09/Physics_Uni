@@ -54,6 +54,11 @@ plugins:
                 - "Teoria Względności": "Twoje_rozwiazania/10_Relativity_solution/index.md"
                 - "Fizyka Współczesna": "Twoje_rozwiazania/11_Modern_Physics_solution/index.md"
             - Animations:
+                - Mechanics 1:
+                    - "Projectile Motion": "Animations/01_Mechanics_1/mechanics1_solution1.html"
+                    - "Projectile Optimization": "Animations/01_Mechanics_1/mechanics1_solution2.html"
+                    - "Path Intersection": "Animations/01_Mechanics_1/mechanics1_solution3.html"
+                    - "River Boat (Relative Velocity)": "Animations/01_Mechanics_1/mechanics1_solution5.html"
                 - "Projectile Motion": "Animations/projectile_motion.html"
                 - "Pendulum": "Animations/pendulum.html"
                 - "Conics": "Animations/conics.html"
@@ -98,6 +103,11 @@ plugins:
                 - "Modern Physics I": "Your_solutions_all/11_Modern_Physics_1.md"
                 - "Modern Physics II": "Your_solutions_all/12_Modern_Physics_2.md"
             - Animations:
+                - Mechanics 1:
+                    - "Projectile Motion": "Animations/01_Mechanics_1/mechanics1_solution1.html"
+                    - "Range Optimization": "Animations/01_Mechanics_1/mechanics1_solution2.html"
+                    - "Path Intersection": "Animations/01_Mechanics_1/mechanics1_solution3.html"
+                    - "River Boat (Relative Velocity)": "Animations/01_Mechanics_1/mechanics1_solution5.html"
                 - "Projectile Motion": "Animations/projectile_motion.html"
                 - "Pendulum": "Animations/pendulum.html"
                 - "Conics": "Animations/conics.html"
