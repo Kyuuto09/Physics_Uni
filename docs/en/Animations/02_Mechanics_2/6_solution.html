@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Dissipation: Bouncing Ball</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-ball: #a3e635; /* Tennis ball yellow/green */
+            --accent-pe: #10b981; /* Green */
+            --accent-ke: #ef4444; /* Red */
+            --accent-te: #8b5cf6; /* Purple */
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 600px;
+            }
+        }
+
+        .visualization-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .energy-bars {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            height: 150px;
+            gap: 2rem;
+        }
+
+        .bar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            width: 60px;
+            gap: 0.5rem;
+        }
+
+        .bar-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.25rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            transition: height 0.05s linear;
+        }
+
+        .bar-fill.pe { background: linear-gradient(to top, #059669, #34d399); }
+        .bar-fill.ke { background: linear-gradient(to top, #dc2626, #f87171); }
+        .bar-fill.te { background: linear-gradient(to top, #7c3aed, #a78bfa); transition: height 0.2s ease; }
+
+        .bar-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 400px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+        }
+
+        .equations {
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .equations div {
+            margin-bottom: 0.5rem;
+        }
+
+        .highlight-pe { color: var(--accent-pe); font-weight: 600; }
+        .highlight-ke { color: var(--accent-ke); font-weight: 600; }
+        .highlight-te { color: var(--accent-te); font-weight: 600; }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button.primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="visualization-area">
+        <div class="canvas-container">
+            <canvas id="simCanvas"></canvas>
+        </div>
+        <div class="energy-bars">
+            <div class="bar-container">
+                <span class="bar-label" style="color: var(--accent-ke)">KE</span>
+                <div class="bar-wrapper">
+                    <div class="bar-fill ke" id="bar-ke"></div>
+                </div>
+            </div>
+            <div class="bar-container">
+                <span class="bar-label" style="color: var(--accent-pe)">PE</span>
+                <div class="bar-wrapper">
+                    <div class="bar-fill pe" id="bar-pe"></div>
+                </div>
+            </div>
+            <div class="bar-container">
+                <span class="bar-label" style="color: var(--accent-te)">Total E</span>
+                <div class="bar-wrapper">
+                    <div class="bar-fill te" id="bar-te"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Energy Dissipation</h1>
+            <p>A ball dropped from $2.0 \text{ m}$ loses $30\%$ of its energy linearly upon each bounce.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Data</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Height ($y$)</span>
+                    <span class="stat-value" id="val-height">2.00 m</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Velocity ($v$)</span>
+                    <span class="stat-value" id="val-vel">0.00 m/s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Bounces</span>
+                    <span class="stat-value" id="val-bounces">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Last Peak Height</span>
+                    <span class="stat-value" style="color: var(--accent-ball);" id="val-peak">2.00 m</span>
+                </div>
+            </div>
+
+            <div class="equations">
+                <div>Initial Height $h_0 = 2.0 \text{ m}$</div>
+                <div>Mass $m = 0.057 \text{ kg}$ (Tennis Ball)</div>
+                <div>Gravity $g = 9.81 \text{ m/s}^2$</div>
+            </div>
+            <div class="equations" style="padding-top:0.5rem; margin-top:0.5rem;">
+                <div class="highlight-pe">PE = $mgh =$ <span id="eq-pe" style="font-variant-numeric: tabular-nums;">1.12</span> J</div>
+                <div class="highlight-ke">KE = $\frac{1}{2}mv^2 =$ <span id="eq-ke" style="font-variant-numeric: tabular-nums;">0.00</span> J</div>
+                <div class="highlight-te" style="margin-top: 0.25rem;">$E_{tot} = KE + PE =$ <span id="eq-te" style="font-variant-numeric: tabular-nums;">1.12</span> J</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="slider-container">
+                <label for="retentionSlider">
+                    <span>Energy Retained per Bounce</span>
+                    <span id="retentionValue">70%</span>
+                </label>
+                <input type="range" id="retentionSlider" min="10" max="100" step="1" value="70">
+            </div>
+
+            <div class="btn-group">
+                <button id="btnPlay" class="primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Play
+                </button>
+                <button id="btnPause" class="secondary" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    Pause
+                </button>
+                <button id="btnReset" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Physics Constants ---
+    const M = 0.057;   // kg (tennis ball)
+    const G = 9.81;    // m/s^2
+    const H0 = 2.0;    // m
+    const E0_MAX = M * G * H0; // approx 1.118 J
+
+    // --- State ---
+    let t = 0;
+    let isPlaying = false;
+    let animationFrameId = null;
+    let lastTimeObj = 0;
+    
+    let y = H0;
+    let v = 0.0;
+    let bounces = 0;
+    let lastPeak = H0;
+    
+    let retentionPct = 0.70; // 70% energy retained -> 30% lost
+    let e_coeff = Math.sqrt(retentionPct); // restitution coefficient = sqrt(h_new / h_old)
+
+    // Expected heights for drawing lines
+    let expectedHeights = [2.0];
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    // Sliders
+    const retentionSlider = document.getElementById('retentionSlider');
+    const retentionValue = document.getElementById('retentionValue');
+    
+    // Text stats
+    const valHeight = document.getElementById('val-height');
+    const valVel = document.getElementById('val-vel');
+    const valBounces = document.getElementById('val-bounces');
+    const valPeak = document.getElementById('val-peak');
+    const eqPe = document.getElementById('eq-pe');
+    const eqKe = document.getElementById('eq-ke');
+    const eqTe = document.getElementById('eq-te');
+    
+    // Bars
+    const barPe = document.getElementById('bar-pe');
+    const barKe = document.getElementById('bar-ke');
+    const barTe = document.getElementById('bar-te');
+
+    // Buttons
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+
+    // --- Visualization Config ---
+    const viewHeight = 2.5; // meters
+    let pxPerMeter = 1;
+    let originX = 0;
+    let originY = 0; // The bottom ground level
+    const ballRadius = 0.05; // 5 cm radius for visual
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        pxPerMeter = (canvas.height * 0.8) / viewHeight;
+        originX = canvas.width / 2;
+        originY = canvas.height - 40; 
+
+        draw();
+    }
+
+    function toScreenY(physicalY) { 
+        // Origin is ground, positive physicalY goes UP
+        return originY - (physicalY * pxPerMeter); 
+    }
+
+    function calculateExpectedHeights() {
+        expectedHeights = [2.0];
+        let currentH = 2.0;
+        for (let i = 0; i < 4; i++) {
+            currentH = currentH * retentionPct;
+            expectedHeights.push(currentH);
+        }
+    }
+
+    function updatePhysics(dt) {
+        // v = v0 + a*t
+        v -= G * dt;
+        
+        const nextY = y + v * dt;
+
+        // Collision Check
+        if (nextY <= ballRadius) {
+            // Hit ground!
+            y = ballRadius;
+            
+            // Restitution
+            v = -v * e_coeff;
+            
+            // Increment bounce if v is substantial
+            if (v > 0.5) {
+                bounces++;
+                
+                // Track peak theoretically for this bounce arc
+                // h = v^2 / 2g
+                lastPeak = (v * v) / (2 * G) + ballRadius;
+            } else if (v < 0.2) {
+                // Resting
+                v = 0;
+            }
+        } else {
+            y = nextY;
+            
+            // Track height dynamically if reaching peak
+            if (v < 0.1 && v > -0.1 && y > ballRadius + 0.1) {
+                 lastPeak = y;
+            }
+        }
+    }
+
+    function draw() {
+        // Clear background
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const groundY = originY;
+
+        // Draw Ground
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(canvas.width, groundY);
+        ctx.stroke();
+
+        ctx.lineWidth = 1;
+        for(let px = 0; px < canvas.width; px += 20) {
+            ctx.beginPath();
+            ctx.moveTo(px, groundY);
+            ctx.lineTo(px - 10, groundY + 15);
+            ctx.stroke();
+        }
+
+        // Draw Expected Height Lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '12px Inter';
+        ctx.setLineDash([5, 5]);
+
+        expectedHeights.forEach((h, index) => {
+            if (h > 0.1) {
+                const sY = toScreenY(h);
+                ctx.beginPath();
+                ctx.moveTo(0, sY);
+                ctx.lineTo(canvas.width, sY);
+                ctx.stroke();
+                
+                let label = (index === 0) ? "Start" : `Bounce ${index}`;
+                ctx.fillText(`${label} (${h.toFixed(2)}m)`, 20, sY - 5);
+            }
+        });
+        ctx.setLineDash([]);
+
+        // Draw Ball
+        const sY = toScreenY(y);
+        const sR = ballRadius * pxPerMeter * 1.5; // Exaggerate slightly for visibility
+
+        ctx.fillStyle = '#a3e635'; // Tennis ball green/yellow
+        ctx.beginPath();
+        ctx.arc(originX, sY, sR, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Ball details (curve)
+        ctx.strokeStyle = '#65a30d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(originX - sR*0.3, sY, sR*0.8, -Math.PI/3, Math.PI/3);
+        ctx.stroke();
+
+        updateDOM();
+    }
+
+    function updateDOM() {
+        valHeight.textContent = y.toFixed(2) + ' m';
+        valVel.textContent = v.toFixed(2) + ' m/s';
+        valBounces.textContent = bounces;
+        valPeak.textContent = lastPeak.toFixed(2) + ' m';
+
+        const pe = M * G * (y - ballRadius > 0 ? y - ballRadius : 0);
+        const ke = 0.5 * M * v * v;
+        const tot = pe + ke;
+
+        eqPe.textContent = pe.toFixed(2);
+        eqKe.textContent = ke.toFixed(2);
+        eqTe.textContent = tot.toFixed(2);
+
+        // Update bars
+        barPe.style.height = `${(pe / E0_MAX) * 100}%`;
+        barKe.style.height = `${(ke / E0_MAX) * 100}%`;
+        barTe.style.height = `${(tot / E0_MAX) * 100}%`;
+    }
+
+    // --- Loop ---
+    function animate(timestamp) {
+        if (!isPlaying) return;
+
+        if (lastTimeObj) {
+            // Cap dt at 0.05 to prevent massive jumps if tab is backgrounded
+            let dt = (timestamp - lastTimeObj) / 1000; 
+            if (dt > 0.05) dt = 0.05; 
+            
+            // Sub-stepping for physics accuracy on collisions
+            const subSteps = 5;
+            for(let i=0; i<subSteps; i++) {
+                updatePhysics(dt / subSteps);
+            }
+        }
+        lastTimeObj = timestamp;
+
+        draw();
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function play() {
+        if (y <= ballRadius * 1.1 && v === 0) {
+            setupState(); // auto reset if on ground
+        }
+        isPlaying = true;
+        lastTimeObj = performance.now();
+        btnPlay.style.display = 'none';
+        btnPause.style.display = 'flex';
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function pause() {
+        isPlaying = false;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        btnPlay.style.display = 'flex';
+        btnPause.style.display = 'none';
+    }
+
+    function setupState() {
+        calculateExpectedHeights();
+        t = 0;
+        y = H0;
+        v = 0.0;
+        bounces = 0;
+        lastPeak = H0;
+    }
+
+    function reset() {
+        pause();
+        setupState();
+        draw();
+    }
+
+    // --- Events ---
+    retentionSlider.addEventListener('input', (e) => {
+        retentionPct = parseFloat(e.target.value) / 100;
+        retentionValue.textContent = `${(retentionPct * 100).toFixed(0)}%`;
+        e_coeff = Math.sqrt(retentionPct);
+        
+        if (!isPlaying) {
+            setupState();
+            draw();
+        }
+    });
+
+    btnPlay.addEventListener('click', play);
+    btnPause.addEventListener('click', pause);
+    btnReset.addEventListener('click', reset);
+    
+    window.addEventListener('load', () => {
+        setupState();
+        resizeCanvas();
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>
