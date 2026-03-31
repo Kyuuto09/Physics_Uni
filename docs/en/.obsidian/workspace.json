@@ -1,0 +1,223 @@
+{
+  "main": {
+    "id": "38eca3e9ff5f4a97",
+    "type": "split",
+    "children": [
+      {
+        "id": "48f0affe2fcb28c9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1dff9e3763114870",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Your_solutions_all/02_Mechanics_2/4_solution.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "4_solution"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "5243feeccd49fbf4",
+    "type": "split",
+    "children": [
+      {
+        "id": "a9b732a480288d39",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "02638aaaf57aa717",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "d5e00459ad712868",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "ae88863080e33887",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "a6abaebaae746cb2",
+    "type": "split",
+    "children": [
+      {
+        "id": "aa772593e558f323",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5b68b0a68315ca01",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Your_solutions_all/03_Waves/8_solution.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for 8_solution"
+            }
+          },
+          {
+            "id": "e87faa2e07dc5e52",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Your_solutions_all/03_Waves/8_solution.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from 8_solution"
+            }
+          },
+          {
+            "id": "5abf57e17b3c4d3b",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "b47fb2917ab0aac3",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "c2cb94d75b7616d5",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Your_solutions_all/03_Waves/8_solution.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of 8_solution"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "1dff9e3763114870",
+  "lastOpenFiles": [
+    "Your_solutions_all/02_Mechanics_2/3_solution.md",
+    "Your_solutions_all/02_Mechanics_2/4_solution.md",
+    "Your_solutions_all/02_Mechanics_2/5_solution.md",
+    "Your_solutions_all/02_Mechanics_2/6_solution.md",
+    "Your_solutions_all/02_Mechanics_2/7_solution.md",
+    "Your_solutions_all/03_Waves/4_solution.md",
+    "Your_solutions_all/02_Mechanics_2/img/solution_12.png",
+    "Your_solutions_all/02_Mechanics_2/img/solution_9.png",
+    "Your_solutions_all/03_Waves/7_solution.md",
+    "Your_solutions_all/03_Waves/6_solution.md",
+    "Your_solutions_all/03_Waves/5_solution.md",
+    "Your_solutions_all/03_Waves/1_solution.md",
+    "Your_solutions_all/02_Mechanics_2/10_solution.md",
+    "Your_solutions_all/02_Mechanics_2/9_solution.md",
+    "Your_solutions_all/02_Mechanics_2/8_solution.md",
+    "Your_solutions_all/03_Waves/3_solution.md",
+    "Your_solutions_all/03_Waves/2_solution.md",
+    "Your_solutions_all/03_Waves/8_solution.md",
+    "Animations/03_Waves/solution_11.html",
+    "Animations/03_Waves/solution_10.html",
+    "Animations/03_Waves/solution_9.html",
+    "Animations/03_Waves",
+    "Your_solutions_all/03_Waves/9_solution.md",
+    "Your_solutions_all/03_Waves/03_Waves.md",
+    "Your_solutions_all/03_Waves/11_solution.md",
+    "Your_solutions_all/03_Waves/10_solution.md",
+    "Your_solutions_all/03_Waves/image-1.png",
+    "Your_solutions_all/03_Waves/Figure_3.png",
+    "Your_solutions_all/03_Waves/py/11solution.py",
+    "Your_solutions_all/03_Waves/Figure_2.png",
+    "Your_solutions_all/03_Waves/py/10solution.py",
+    "Your_solutions_all/03_Waves/py/9solution.py",
+    "Your_solutions_all/03_Waves/py/9_solution",
+    "Your_solutions_all/03_Waves/py"
+  ]
+}

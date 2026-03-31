@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relative Velocity: River Crossing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-river: #3b82f6; /* Blue */
+            --accent-boat: #ef4444; /* Red */
+            --accent-actual: #10b981; /* Green */
+            --accent-highlight: #fbbf24; /* Amber */
+            --border-color: #334155;
+            --grid-color: rgba(255, 255, 255, 0.05);
+            --water-color: rgba(59, 130, 246, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 600px;
+            }
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 380px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.river { color: var(--accent-river); }
+        .stat-value.boat { color: var(--accent-boat); }
+        .stat-value.actual { color: var(--accent-actual); }
+        .stat-value.time { color: var(--text-main); }
+        
+        .success-text {
+            color: var(--accent-actual) !important;
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .equations {
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .equations div {
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button.primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .notification {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--accent-actual);
+            color: var(--accent-actual);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 10;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="canvas-container">
+        <canvas id="simCanvas"></canvas>
+        <div id="successNotif" class="notification">
+            Perfect Heading! Crossing directly North.
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Relative Velocity</h1>
+            <p>Crossing a river flowing East at $2 \text{ m/s}$ with a boat that travels at $5 \text{ m/s}$.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Data</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Position ($x, y$)</span>
+                    <span class="stat-value time" id="val-pos">(0.0, 0.0)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Heading ($\theta$ West of North)</span>
+                    <span class="stat-value boat" id="val-theta">0.0&deg;</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Actual Speed ($|v_{actual}|$)</span>
+                    <span class="stat-value actual" id="val-speed">5.0 m/s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Est. Time to Cross</span>
+                    <span class="stat-value time" id="val-time">40.0 s</span>
+                </div>
+            </div>
+            
+            <div class="equations">
+                <div><span style="color: var(--accent-river)">River ($v_r$):</span> $(2.0, 0.0) \text{ m/s}$</div>
+                <div><span style="color: var(--accent-boat)">Boat ($v_b$):</span> $(-5\sin\theta, 5\cos\theta) \text{ m/s}$</div>
+                <div><span style="color: var(--accent-actual)">Actual ($v$):</span> $v_r + v_b$</div>
+                <div style="margin-top:0.5rem; font-size: 0.8rem; color: var(--text-muted)">
+                    Width = $200 \text{ m}$. Target: $x = 0$ at crossing.
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="slider-container">
+                <label for="angleSlider">
+                    <span>Aim ($\theta$ West of North)</span>
+                    <span id="sliderValue">0&deg;</span>
+                </label>
+                <input type="range" id="angleSlider" min="0" max="60" step="0.1" value="0">
+            </div>
+
+            <div class="btn-group">
+                <button id="btnPlay" class="primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Play
+                </button>
+                <button id="btnPause" class="secondary" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    Pause
+                </button>
+                <button id="btnReset" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Physics Constants ---
+    const V_RIVER = 2.0;    // m/s East
+    const V_BOAT = 5.0;     // m/s
+    const WIDTH = 200.0;    // m
+    const TARGET_ANGLE = Math.asin(V_RIVER / V_BOAT) * (180 / Math.PI); // ~23.58
+
+    // --- State ---
+    let t = 0;
+    let isPlaying = false;
+    let animationFrameId = null;
+    let lastTimeObj = 0;
+    let boatAngleDeg = 0; // West of North
+    const timeScale = 4.0; // Simulate 4 seconds per real second for faster viewing
+
+    // For water particles
+    const particles = Array.from({ length: 40 }).map(() => ({
+        x: Math.random() * 400 - 200,
+        y: Math.random() * WIDTH,
+        speed: V_RIVER * (0.8 + Math.random() * 0.4) // slight variation
+    }));
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const angleSlider = document.getElementById('angleSlider');
+    const sliderVal = document.getElementById('sliderValue');
+    
+    const valPos = document.getElementById('val-pos');
+    const valTheta = document.getElementById('val-theta');
+    const valSpeed = document.getElementById('val-speed');
+    const valTime = document.getElementById('val-time');
+    
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+    const notif = document.getElementById('successNotif');
+
+    // --- Coordinate System ---
+    // x: [-150, 150], y: [-20, 220] (0 is South bank, 200 is North bank)
+    const view = { xMin: -150, xMax: 150, yMin: -20, yMax: 220 };
+    let scale = 1, offsetX = 0, offsetY = 0;
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        const scaleX = canvas.width / (view.xMax - view.xMin);
+        const scaleY = canvas.height / (view.yMax - view.yMin);
+        scale = Math.min(scaleX, scaleY) * 0.9; 
+        
+        const physWidth = (view.xMax - view.xMin) * scale;
+        const physHeight = (view.yMax - view.yMin) * scale;
+        
+        offsetX = (canvas.width - physWidth) / 2 - view.xMin * scale;
+        offsetY = (canvas.height - physHeight) / 2 + view.yMax * scale;
+
+        draw();
+    }
+
+    function toScreen(x, y) {
+        return {
+            x: offsetX + x * scale,
+            y: offsetY - y * scale
+        };
+    }
+    
+    function toScreenDist(d) {
+        return d * scale;
+    }
+
+    // --- Physics Logic ---
+    function getVelocities(angleDeg) {
+        const rad = angleDeg * (Math.PI / 180);
+        const vx_boat = -V_BOAT * Math.sin(rad); // Negative because West
+        const vy_boat = V_BOAT * Math.cos(rad);
+        
+        const vx_actual = vx_boat + V_RIVER;
+        const vy_actual = vy_boat; // River has no North/South component
+        
+        return {
+            v_boat: { x: vx_boat, y: vy_boat },
+            v_actual: { x: vx_actual, y: vy_actual }
+        };
+    }
+
+    function getPosition(t, v_actual) {
+        return {
+            x: v_actual.x * t,
+            y: v_actual.y * t
+        };
+    }
+
+    // --- Drawing ---
+    function drawBackground() {
+        // Clear background
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw River
+        const s_bottom = toScreen(view.xMin, 0);
+        const s_top = toScreen(view.xMax, WIDTH);
+        
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
+        ctx.fillRect(0, s_top.y, canvas.width, s_bottom.y - s_top.y);
+
+        // Draw Banks
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // South bank
+        ctx.moveTo(0, s_bottom.y);
+        ctx.lineTo(canvas.width, s_bottom.y);
+        // North bank
+        ctx.moveTo(0, s_top.y);
+        ctx.lineTo(canvas.width, s_top.y);
+        ctx.stroke();
+
+        // Labels
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'left';
+        ctx.fillText('North Bank (y = 200m)', 10, s_top.y - 10);
+        ctx.fillText('South Bank (y = 0m)', 10, s_bottom.y + 20);
+        
+        // Draw Target Line (x=0)
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.setLineDash([5, 5]);
+        const origin = toScreen(0, 0);
+        ctx.beginPath();
+        ctx.moveTo(origin.x, 0);
+        ctx.lineTo(origin.x, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    function drawParticles(dt) {
+        ctx.fillStyle = 'rgba(96, 165, 250, 0.3)'; // light blue
+        particles.forEach(p => {
+            if (isPlaying) {
+                p.x += p.speed * dt;
+                if (p.x > view.xMax) p.x = view.xMin; // warp
+            }
+            const s = toScreen(p.x, p.y);
+            ctx.fillRect(s.x, s.y, 10, 2);
+        });
+    }
+
+    function drawArrow(fromX, fromY, toX, toY, color) {
+        const headlen = 8; 
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(toX, toY);
+        ctx.fill();
+    }
+
+    function drawBoat(pos, vels) {
+        const s_pos = toScreen(pos.x, pos.y);
+        
+        // Draw Actual Path trail (dotted)
+        if (pos.y > 0) {
+            ctx.strokeStyle = '#10b981';
+            ctx.setLineDash([3, 5]);
+            ctx.beginPath();
+            const origin = toScreen(0, 0);
+            ctx.moveTo(origin.x, origin.y);
+            ctx.lineTo(s_pos.x, s_pos.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Vector multiplier for visualization (makes arrows longer)
+        const vScale = 8;
+        
+        // Draw Vectors
+        drawArrow(s_pos.x, s_pos.y, 
+                  s_pos.x + toScreenDist(vels.v_boat.x * vScale), 
+                  s_pos.y - toScreenDist(vels.v_boat.y * vScale), 
+                  '#ef4444'); // Boat Engine Velocity
+                  
+        drawArrow(s_pos.x, s_pos.y, 
+                  s_pos.x + toScreenDist(V_RIVER * vScale), 
+                  s_pos.y, 
+                  '#3b82f6'); // River Velocity
+                  
+        drawArrow(s_pos.x, s_pos.y, 
+                  s_pos.x + toScreenDist(vels.v_actual.x * vScale), 
+                  s_pos.y - toScreenDist(vels.v_actual.y * vScale), 
+                  '#10b981'); // Actual Velocity
+
+        // Boat Body
+        ctx.fillStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.arc(s_pos.x, s_pos.y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Boat nose showing heading
+        const rad = boatAngleDeg * (Math.PI / 180);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(s_pos.x, s_pos.y);
+        ctx.lineTo(s_pos.x - 10 * Math.sin(rad), s_pos.y - 10 * Math.cos(rad));
+        ctx.stroke();
+    }
+
+    function draw() {
+        // In the first draw, the dimensions might be 0 until setup correctly on load
+        if (canvas.width === 0) return;
+
+        const dt = isPlaying && lastTimeObj ? (performance.now() - lastTimeObj) / 1000 * timeScale : 0;
+        
+        drawBackground();
+        drawParticles(dt);
+
+        const vels = getVelocities(boatAngleDeg);
+        const pos = getPosition(t, vels.v_actual);
+
+        // Check if crossed
+        let isCrossed = false;
+        if (pos.y >= WIDTH) {
+            pos.y = WIDTH;
+            pos.x = vels.v_actual.x * (WIDTH / vels.v_actual.y);
+            isCrossed = true;
+            if (isPlaying) pause();
+        }
+
+        drawBoat(pos, vels);
+
+        // UI Update
+        const isPerfect = Math.abs(boatAngleDeg - TARGET_ANGLE) < 0.2;
+        updateUI(pos, vels, isPerfect);
+    }
+
+    function updateUI(pos, vels, isPerfect) {
+        valPos.textContent = `(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`;
+        valTheta.textContent = `${boatAngleDeg.toFixed(1)}°`;
+        
+        const speed = Math.sqrt(vels.v_actual.x**2 + vels.v_actual.y**2);
+        valSpeed.textContent = `${speed.toFixed(2)} m/s`;
+        
+        const timeToCross = WIDTH / vels.v_actual.y;
+        valTime.textContent = `${timeToCross.toFixed(1)} s`;
+
+        if (isPerfect) {
+            valTheta.classList.add('success-text');
+            notif.classList.add('show');
+        } else {
+            valTheta.classList.remove('success-text');
+            notif.classList.remove('show');
+        }
+    }
+
+    // --- Loop ---
+    function animate(timestamp) {
+        if (!isPlaying) return;
+
+        if (lastTimeObj) {
+            const realDt = (timestamp - lastTimeObj) / 1000;
+            t += realDt * timeScale;
+        }
+        lastTimeObj = timestamp;
+
+        draw();
+        
+        if (isPlaying) {
+            animationFrameId = requestAnimationFrame(animate);
+        }
+    }
+
+    function play() {
+        const vels = getVelocities(boatAngleDeg);
+        if (getPosition(t, vels.v_actual).y >= WIDTH) t = 0; // reset if at top
+        
+        isPlaying = true;
+        lastTimeObj = performance.now();
+        btnPlay.style.display = 'none';
+        btnPause.style.display = 'flex';
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function pause() {
+        isPlaying = false;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        btnPlay.style.display = 'flex';
+        btnPause.style.display = 'none';
+    }
+
+    function reset() {
+        pause();
+        t = 0;
+        draw();
+    }
+
+    // --- Events ---
+    angleSlider.addEventListener('input', (e) => {
+        boatAngleDeg = parseFloat(e.target.value);
+        sliderVal.innerHTML = `${boatAngleDeg.toFixed(1)}&deg;`;
+        reset(); // reset position when aiming changes
+    });
+
+    btnPlay.addEventListener('click', play);
+    btnPause.addEventListener('click', pause);
+    btnReset.addEventListener('click', reset);
+    
+    window.addEventListener('load', () => {
+        resizeCanvas();
+        sliderVal.innerHTML = `${boatAngleDeg.toFixed(1)}&deg;`;
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>

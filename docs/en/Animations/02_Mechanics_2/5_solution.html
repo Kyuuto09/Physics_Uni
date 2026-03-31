@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inelastic Collision</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-runner: #3b82f6; /* Blue */
+            --accent-cart: #f59e0b; /* Amber */
+            --accent-combined: #10b981; /* Green */
+            --accent-p: #8b5cf6; /* Purple for momentum */
+            --accent-ke: #ef4444; /* Red for KE */
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 600px;
+            }
+        }
+
+        .visualization-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .energy-bars {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            height: 180px;
+            gap: 2rem;
+        }
+
+        .bar-group {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-end;
+            height: 100%;
+            padding: 0 1rem;
+            border-right: 1px solid var(--border-color);
+        }
+        
+        .bar-group:last-child {
+            border-right: none;
+        }
+
+        .bar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            width: 50px;
+            gap: 0.5rem;
+        }
+
+        .bar-wrapper {
+            position: relative;
+            width: 100%;
+            height: 110px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 0.25rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            transition: height 0.05s linear;
+        }
+
+        .bar-fill.p { background: linear-gradient(to top, #6d28d9, #8b5cf6); }
+        .bar-fill.ke { background: linear-gradient(to top, #b91c1c, #ef4444); }
+
+        .bar-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        .group-label {
+            position: absolute;
+            top: -20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-main);
+            width: 100%;
+            text-align: center;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 400px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+        }
+
+        .stat-value.runner { color: var(--accent-runner); }
+        .stat-value.cart { color: var(--accent-cart); }
+        .stat-value.combined { color: var(--accent-combined); }
+
+        .equations {
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .equations div {
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button.primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="visualization-area">
+        <div class="canvas-container">
+            <canvas id="simCanvas"></canvas>
+        </div>
+        <div class="energy-bars">
+            <div class="bar-group" style="position: relative;">
+                <div class="group-label">System Momentum ($p$)</div>
+                <div class="bar-container">
+                    <span class="bar-label" style="color: var(--accent-runner)">Run</span>
+                    <div class="bar-wrapper">
+                        <div class="bar-fill p" id="bar-p-runner"></div>
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label" style="color: var(--accent-cart)">Cart</span>
+                    <div class="bar-wrapper">
+                        <div class="bar-fill p" id="bar-p-cart"></div>
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label" style="color: var(--text-main)">Total</span>
+                    <div class="bar-wrapper">
+                        <div class="bar-fill p" id="bar-p-total"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="bar-group" style="position: relative;">
+                <div class="group-label">Kinetic Energy ($KE$)</div>
+                <div class="bar-container">
+                    <span class="bar-label" style="color: var(--accent-runner)">Run</span>
+                    <div class="bar-wrapper">
+                        <div class="bar-fill ke" id="bar-ke-runner"></div>
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label" style="color: var(--accent-cart)">Cart</span>
+                    <div class="bar-wrapper">
+                        <div class="bar-fill ke" id="bar-ke-cart"></div>
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <span class="bar-label" style="color: var(--text-main)">Total</span>
+                    <div class="bar-wrapper">
+                        <div class="bar-fill ke" id="bar-ke-total"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Inelastic Collision</h1>
+            <p>A $70 \text{ kg}$ runner jumps onto a $140 \text{ kg}$ stationary cart.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Data</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Velocity (Runner)</span>
+                    <span class="stat-value runner" id="val-v1">3.00 m/s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Velocity (Cart)</span>
+                    <span class="stat-value cart" id="val-v2">0.00 m/s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">System Status</span>
+                    <span class="stat-value" id="val-status">Pre-Collision</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Time ($t$)</span>
+                    <span class="stat-value" id="val-time">0.00 s</span>
+                </div>
+            </div>
+
+            <div class="equations">
+                <div>$m_1 = 70 \text{ kg}, m_2 = 140 \text{ kg}$</div>
+                <div style="margin-top:0.5rem;">
+                    $p_{total} =$ <span id="eq-ptot" style="font-variant-numeric: tabular-nums; font-weight:600;">210</span> $\text{ kg}\cdot\text{m/s}$
+                </div>
+                <div>
+                    $KE_{total} =$ <span id="eq-ketot" style="font-variant-numeric: tabular-nums; font-weight:600;">315</span> J
+                </div>
+            </div>
+            <div class="equations" style="padding-top:0.5rem; margin-top:0.5rem; font-size: 0.8rem; color: var(--text-muted)">
+                Momemtum avoids loss. Kinetic energy drops upon inelastic impact!
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="slider-container">
+                <label for="velocitySlider">
+                    <span>Runner Initial Speed ($v_{1i}$)</span>
+                    <span id="speedValue">3.0 m/s</span>
+                </label>
+                <input type="range" id="velocitySlider" min="1.0" max="6.0" step="0.1" value="3.0">
+            </div>
+
+            <div class="btn-group">
+                <button id="btnPlay" class="primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Play
+                </button>
+                <button id="btnPause" class="secondary" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    Pause
+                </button>
+                <button id="btnReset" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Physics Constants ---
+    const M1 = 70.0;   // Runner mass (kg)
+    const M2 = 140.0;  // Cart mass (kg)
+    let V1_INITIAL = 3.0; // Runner speed (m/s)
+    const V2_INITIAL = 0.0; // Cart is stationary
+    
+    // Derived initially
+    let P_TOTAL_MAX = M1 * 6.0 + M2 * 0.0; // max possible momentum for bar scaling
+    let KE_TOTAL_MAX = 0.5 * M1 * 6.0 * 6.0; // max possible KE for bar scaling
+
+    // --- State ---
+    let t = 0;
+    let isPlaying = false;
+    let animationFrameId = null;
+    let lastTimeObj = 0;
+    let hasCollided = false;
+    let collisionTime = -1;
+
+    // Positions (x in meters, origin at initial cart position)
+    let x1 = -4.0; 
+    let x2 = 0.0;
+    let v1 = V1_INITIAL;
+    let v2 = V2_INITIAL;
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    // Sliders
+    const velocitySlider = document.getElementById('velocitySlider');
+    const speedValue = document.getElementById('speedValue');
+    
+    // Text stats
+    const valV1 = document.getElementById('val-v1');
+    const valV2 = document.getElementById('val-v2');
+    const valStatus = document.getElementById('val-status');
+    const valTime = document.getElementById('val-time');
+    const eqPtot = document.getElementById('eq-ptot');
+    const eqKetot = document.getElementById('eq-ketot');
+    
+    // Bars
+    const barPRunner = document.getElementById('bar-p-runner');
+    const barPCart = document.getElementById('bar-p-cart');
+    const barPTotal = document.getElementById('bar-p-total');
+    
+    const barKERunner = document.getElementById('bar-ke-runner');
+    const barKECart = document.getElementById('bar-ke-cart');
+    const barKETotal = document.getElementById('bar-ke-total');
+
+    // Buttons
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+
+    // --- Visualization Config ---
+    const viewWidth = 10.0; // 10 meters across canvas
+    let pxPerMeter = 1;
+    let originX = 0;
+    let originY = 0;
+    const runnerWidth = 0.5; // m
+    const cartWidth = 1.0; // m
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        pxPerMeter = canvas.width / viewWidth;
+        originX = canvas.width / 2; // cart starts at center
+        originY = canvas.height / 2 + 30; // ground level
+
+        draw();
+    }
+
+    function toScreenX(x) { return originX + x * pxPerMeter; }
+    function toScreenDist(dx) { return dx * pxPerMeter; }
+
+    function getVelocities() {
+        if (!hasCollided) {
+            return { v1: V1_INITIAL, v2: V2_INITIAL };
+        } else {
+            // Perfectly inelastic collision: v_f = (m1*v1i + m2*v2i) / (m1 + m2)
+            const vf = (M1 * V1_INITIAL + M2 * V2_INITIAL) / (M1 + M2);
+            return { v1: vf, v2: vf };
+        }
+    }
+
+    function updatePhysics(dt) {
+        // Simple Euler integration
+        const vels = getVelocities();
+        v1 = vels.v1;
+        v2 = vels.v2;
+
+        x1 += v1 * dt;
+        x2 += v2 * dt;
+
+        // Collision detection
+        if (!hasCollided && x1 + runnerWidth/2 >= x2 - cartWidth/2) {
+            hasCollided = true;
+            collisionTime = t;
+            // Snaps runner exactly to cart's edge so they don't overlap strangely
+            x1 = x2 - cartWidth/2 - runnerWidth/2;
+        }
+    }
+
+    function drawArrow(fromX, fromY, toX, toY, color) {
+        const headlen = 8; 
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+        
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return; // too small
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(toX, toY);
+        ctx.fill();
+    }
+
+    function draw() {
+        // Clear background
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        const groundY = originY;
+
+        // Draw Ground Line
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, groundY);
+        ctx.lineTo(canvas.width, groundY);
+        ctx.stroke();
+
+        ctx.lineWidth = 1;
+        for(let px = 0; px < canvas.width; px += 20) {
+            const parallaxOffset = (originX - toScreenDist(x2)) % 20; // make floor move when camera follows? 
+            // Better to keep camera static so we see movement!
+            ctx.beginPath();
+            ctx.moveTo(px, groundY);
+            ctx.lineTo(px - 10, groundY + 15);
+            ctx.stroke();
+        }
+
+        // Draw Cart (Amber)
+        const cX = toScreenX(x2);
+        const cW = toScreenDist(cartWidth);
+        const cH = 40;
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.rect(cX - cW/2, groundY - cH - 10, cW, cH);
+        ctx.fill();
+        ctx.stroke();
+        // Wheels
+        ctx.fillStyle = '#64748b';
+        ctx.beginPath(); ctx.arc(cX - cW/4, groundY - 10, 10, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cX + cW/4, groundY - 10, 10, 0, Math.PI*2); ctx.fill();
+
+        // Draw Runner (Blue)
+        const rX = toScreenX(x1);
+        const rW = toScreenDist(runnerWidth);
+        const rH = 50;
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.beginPath();
+        ctx.rect(rX - rW/2, groundY - rH - 10, rW, rH); // on wheels of cart or ground
+        // Adjust runner Y if on cart
+        let rY = groundY - rH;
+        if (hasCollided) rY = groundY - cH - rH - 10;
+        else rY = groundY - rH;
+        
+        ctx.rect(rX - rW/2, rY, rW, rH);
+        ctx.fill();
+        ctx.stroke();
+
+        // Draw Momentum vectors above bodies
+        const p1 = M1 * v1;
+        const p2 = M2 * v2;
+        const vecScale = 0.5; // pixel per kg*m/s
+        
+        if (v1 > 0) drawArrow(rX, rY - 20, rX + p1 * vecScale, rY - 20, '#3b82f6');
+        if (v2 > 0) drawArrow(cX, groundY - cH - 30, cX + p2 * vecScale, groundY - cH - 30, '#f59e0b');
+
+        // Combined if collided
+        if (hasCollided) {
+            valV1.classList.add('combined'); valV1.classList.remove('runner');
+            valV2.classList.add('combined'); valV2.classList.remove('cart');
+        } else {
+            valV1.classList.add('runner'); valV1.classList.remove('combined');
+            valV2.classList.add('cart'); valV2.classList.remove('combined');
+        }
+
+        updateDOM();
+    }
+
+    function updateDOM() {
+        valV1.textContent = v1.toFixed(2) + ' m/s';
+        valV2.textContent = v2.toFixed(2) + ' m/s';
+        valTime.textContent = t.toFixed(2) + ' s';
+
+        if (hasCollided) {
+            valStatus.textContent = "Collided & Stuck";
+            valStatus.style.color = "var(--accent-combined)";
+        } else {
+            valStatus.textContent = "Approaching";
+            valStatus.style.color = "var(--text-muted)";
+        }
+
+        const p1 = M1 * v1;
+        const p2 = M2 * v2;
+        const pTot = p1 + p2;
+        
+        const k1 = 0.5 * M1 * v1 * v1;
+        const k2 = 0.5 * M2 * v2 * v2;
+        const kTot = k1 + k2;
+
+        eqPtot.textContent = pTot.toFixed(0);
+        eqKetot.textContent = kTot.toFixed(0);
+
+        // Update bars
+        barPRunner.style.height = `${(p1 / P_TOTAL_MAX) * 100}%`;
+        barPCart.style.height = `${(p2 / P_TOTAL_MAX) * 100}%`;
+        barPTotal.style.height = `${(pTot / P_TOTAL_MAX) * 100}%`;
+
+        barKERunner.style.height = `${(k1 / KE_TOTAL_MAX) * 100}%`;
+        barKECart.style.height = `${(k2 / KE_TOTAL_MAX) * 100}%`;
+        barKETotal.style.height = `${(kTot / KE_TOTAL_MAX) * 100}%`;
+        
+        // Add subtle flash to KE total bar when collision happens
+        if (hasCollided && (t - collisionTime) < 0.2) {
+            barKETotal.style.boxShadow = "0 0 15px var(--accent-ke)";
+        } else {
+            barKETotal.style.boxShadow = "none";
+        }
+    }
+
+    // --- Loop ---
+    function animate(timestamp) {
+        if (!isPlaying) return;
+
+        if (lastTimeObj) {
+            const dt = (timestamp - lastTimeObj) / 1000; // real-time
+            t += dt;
+            updatePhysics(dt);
+        }
+        lastTimeObj = timestamp;
+
+        draw();
+
+        // stop the animation if they run out of bounds
+        if (toScreenX(x2) > canvas.width + 50) {
+            pause();
+            btnPlay.style.display = 'flex';
+        } else {
+            animationFrameId = requestAnimationFrame(animate);
+        }
+    }
+
+    function play() {
+        if (toScreenX(x2) > canvas.width) reset(); // Auto reset if played while out of bounds
+        
+        isPlaying = true;
+        lastTimeObj = performance.now();
+        btnPlay.style.display = 'none';
+        btnPause.style.display = 'flex';
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function pause() {
+        isPlaying = false;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        btnPlay.style.display = 'flex';
+        btnPause.style.display = 'none';
+    }
+
+    function setupState() {
+        P_TOTAL_MAX = M1 * 6.0 + M2 * 0.0;
+        KE_TOTAL_MAX = 0.5 * M1 * 6.0 * 6.0;
+
+        t = 0;
+        x1 = -4.0;
+        x2 = 0.0;
+        v1 = V1_INITIAL;
+        v2 = V2_INITIAL;
+        hasCollided = false;
+        collisionTime = -1;
+    }
+
+    function reset() {
+        pause();
+        setupState();
+        draw();
+    }
+
+    // --- Events ---
+    velocitySlider.addEventListener('input', (e) => {
+        V1_INITIAL = parseFloat(e.target.value);
+        speedValue.textContent = `${V1_INITIAL.toFixed(1)} m/s`;
+        if (t === 0 && !isPlaying) {
+            v1 = V1_INITIAL;
+            draw();
+        }
+    });
+    
+    velocitySlider.addEventListener('change', () => {
+        reset(); // Hard reset when slider finishes moving
+    });
+
+    btnPlay.addEventListener('click', play);
+    btnPause.addEventListener('click', pause);
+    btnReset.addEventListener('click', reset);
+    
+    window.addEventListener('load', () => {
+        setupState();
+        resizeCanvas();
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>

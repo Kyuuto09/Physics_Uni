@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Kinematics: Elliptical Helix</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-pos: #f8fafc; /* White/Gray */
+            --accent-vel: #3b82f6; /* Blue */
+            --accent-acc: #ef4444; /* Red */
+            --accent-highlight: #fbbf24; /* Amber */
+            --border-color: #334155;
+            --grid-color: rgba(255, 255, 255, 0.05);
+            --axis-x: #ef4444;
+            --axis-y: #10b981;
+            --axis-z: #3b82f6;
+            --path-color: rgba(167, 139, 250, 0.8);
+            --shadow-color: rgba(255, 255, 255, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 700px;
+            }
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 380px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.vel { color: var(--accent-vel); }
+        .stat-value.acc { color: var(--accent-acc); }
+        .stat-value.length { color: var(--path-color); }
+        .stat-value.time { color: var(--text-main); }
+        
+        .special-case {
+            color: var(--accent-highlight) !important;
+        }
+
+        .equations {
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .equations div {
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .toggle-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+
+        .switch input { 
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-tog {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #334155;
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider-tog:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider-tog {
+            background-color: var(--accent-highlight);
+        }
+
+        input:checked + .slider-tog:before {
+            transform: translateX(22px);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button.primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .hint {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.4);
+            pointer-events: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="canvas-container">
+        <canvas id="simCanvas"></canvas>
+        <div class="hint">Draw on canvas to rotate 3D view</div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>3D Helix Kinematics</h1>
+            <p>Visualizing constant and non-constant speed along elliptical trajectories in 3D space.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Kinematics</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Time ($t$)</span>
+                    <span class="stat-value time" id="val-t">0.00 s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Position ($x, y, z$)</span>
+                    <span class="stat-value time" id="val-pos">(0.0, 0.0, 0.0)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Speed ($|\vec{v}|$)</span>
+                    <span class="stat-value vel" id="val-speed">0.0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Path Length ($L$)</span>
+                    <span class="stat-value length" id="val-length">0.0</span>
+                </div>
+            </div>
+            
+            <div class="equations" id="eq-container">
+                <!-- Injected via JS based on toggle -->
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="toggle-container">
+                <span class="toggle-label">Special Case (Circular: $a=b$)</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggleSpecial">
+                    <span class="slider-tog"></span>
+                </label>
+            </div>
+            
+            <div class="slider-container">
+                <label for="timeSlider">
+                    <span>Time Progress ($t=0$ to $4\pi/\omega$)</span>
+                    <span id="sliderValue">0.00s</span>
+                </label>
+                <input type="range" id="timeSlider" min="0" max="12.56" step="0.01" value="0">
+            </div>
+
+            <div class="btn-group">
+                <button id="btnPlay" class="primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Play
+                </button>
+                <button id="btnPause" class="secondary" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    Pause
+                </button>
+                <button id="btnReset" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Physics Definitions ---
+    let params = {
+        a: 3.0,
+        b: 1.5,
+        w: 1.0
+    };
+    
+    // t ranges from 0 to 4pi/w (2 full rotations)
+    const MAX_T = (4 * Math.PI) / params.w;
+    
+    // Position
+    const getPos = (t) => ({ 
+        x: params.a * Math.cos(params.w * t), 
+        y: params.b * Math.sin(params.w * t),
+        z: params.b * t
+    });
+    
+    // Velocity Vector
+    const getVel = (t) => ({
+        x: -params.a * params.w * Math.sin(params.w * t),
+        y: params.b * params.w * Math.cos(params.w * t),
+        z: params.b
+    });
+    
+    // Speed
+    const getSpeed = (t) => {
+        const v = getVel(t);
+        return Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+    };
+    
+    // Path Length L using numerical integration (Riemann Sum)
+    const getPathLength = (tTarget) => {
+        if (params.a === params.b) {
+            // Special Case: Circular Helix = constant speed
+            const speed = Math.sqrt(params.a*params.a * params.w*params.w + params.b*params.b);
+            return speed * tTarget;
+        } else {
+            // General Case: Elliptical Helix = Elliptic Integral
+            const steps = 100;
+            const dt = tTarget / steps;
+            let len = 0;
+            for(let i = 0; i < steps; i++) {
+                const tMid = (i + 0.5) * dt;
+                len += getSpeed(tMid) * dt;
+            }
+            return len;
+        }
+    };
+
+    // --- State ---
+    let t = 0;
+    let isPlaying = false;
+    let animationFrameId = null;
+    let lastTimeObj = 0;
+    const timeScale = 0.5;
+
+    // --- 3D Projection Engine ---
+    let cam = {
+        theta: Math.PI / 4, // Rotation around Z axis
+        phi: Math.PI / 4,   // Elevation angle
+        scale: 25,          // pixels per unit
+        cx: 0,              // screen center
+        cy: 0
+    };
+    
+    let isDragging = false;
+    let lastMouse = { x: 0, y: 0 };
+
+    /**
+     * Projects 3D coordinate (x,y,z) onto 2D canvas (sx, sy).
+     * Standard isometric-like projection.
+     */
+    function project3D(x, y, z) {
+        // Step 1: Rotate around Z
+        const ct = Math.cos(cam.theta);
+        const st = Math.sin(cam.theta);
+        const x1 = x * ct - y * st;
+        const y1 = x * st + y * ct;
+        
+        // Step 2: Rotate around X (Tilt)
+        const cp = Math.cos(cam.phi);
+        const sp = Math.sin(cam.phi);
+        // y2 goes "up" the screen, z goes "into/out"
+        // But let's map standard Z to "Up" on screen, and Y into the screen.
+        const y2 = y1 * cp - z * sp;
+        const z2 = y1 * sp + z * cp;
+
+        // Note: Canvas Y is flipped (positive goes down screen), so we invert Y offset
+        return {
+            x: cam.cx + x1 * cam.scale,
+            y: cam.cy + y2 * cam.scale, // Standard math mapping is handled carefully here
+            depth: z2 // for potential z-sorting
+        };
+    }
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const tSlider = document.getElementById('timeSlider');
+    const sliderVal = document.getElementById('sliderValue');
+    const toggleCase = document.getElementById('toggleSpecial');
+    const eqContainer = document.getElementById('eq-container');
+    
+    const valT = document.getElementById('val-t');
+    const valPos = document.getElementById('val-pos');
+    const valSpeed = document.getElementById('val-speed');
+    const valLen = document.getElementById('val-length');
+    
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+    
+    function updateEquations() {
+        const isSpecial = params.a === params.b;
+        const color = isSpecial ? 'var(--accent-highlight)' : 'var(--text-main)';
+        
+        let html = `
+            <div><span>Shape: </span> <span style="color: ${color}">${isSpecial ? 'Circular Helix' : 'Elliptical Helix'}</span></div>
+            <div><span>Pos: </span> $\\vec{r}(t) = (${params.a}\\cos(t), ${params.b}\\sin(t), ${params.b}t)$</div>
+            <div><span>Speed: </span> $|\\vec{v}(t)| = ${isSpecial ? 'const' : '\\text{variable}'}$</div>
+            <div><span>Length: </span> $L = ${isSpecial ? '\\text{speed} \\times t' : '\\int |v| dt'}$</div>
+        `;
+        eqContainer.innerHTML = html;
+        if (window.MathJax) {
+            MathJax.typesetPromise([eqContainer]);
+        }
+    }
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        cam.cx = canvas.width / 2;
+        cam.cy = canvas.height * 0.7; // shift origin down to view height
+        
+        // Adjust scale based on screen size
+        cam.scale = Math.min(canvas.width, canvas.height) / 18;
+
+        draw();
+    }
+
+    // --- Drawing ---
+    function drawAxis() {
+        // Draw X, Y, Z axes
+        const origin = project3D(0, 0, 0);
+        const len = Math.max(params.a, params.b) * 1.5;
+        const zLen = MAX_T * params.b * 1.1;
+
+        const xEnd = project3D(len, 0, 0);
+        const yEnd = project3D(0, len, 0);
+        const zEnd = project3D(0, 0, zLen);
+        const zSubEnd = project3D(0, 0, -2); // a little bit below
+
+        ctx.lineWidth = 1;
+        ctx.font = '12px Inter';
+
+        // Z-axis (below 0)
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(zSubEnd.x, zSubEnd.y); ctx.stroke();
+
+        // X-axis
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)'; // Red
+        ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(xEnd.x, xEnd.y); ctx.stroke();
+        ctx.fillStyle = ctx.strokeStyle; ctx.fillText('X', xEnd.x+5, xEnd.y);
+
+        // Y-axis
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)'; // Green
+        ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(yEnd.x, yEnd.y); ctx.stroke();
+        ctx.fillStyle = ctx.strokeStyle; ctx.fillText('Y', yEnd.x+5, yEnd.y);
+
+        // Z-axis
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)'; // Blue
+        ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(zEnd.x, zEnd.y); ctx.stroke();
+        ctx.fillStyle = ctx.strokeStyle; ctx.fillText('Z', zEnd.x+5, zEnd.y);
+    }
+
+    function drawPath() {
+        const steps = 200;
+        
+        // Draw 2D Shadow (Z=0 plane)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; // Shadow color
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+            const currT = (i / steps) * MAX_T;
+            const p = getPos(currT);
+            const sp = project3D(p.x, p.y, 0); // Z=0
+            if (i === 0) ctx.moveTo(sp.x, sp.y);
+            else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.stroke();
+
+        // Draw Full 3D Path
+        ctx.strokeStyle = params.a === params.b ? 'rgba(251, 191, 36, 0.8)' : 'rgba(167, 139, 250, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+            const currT = (i / steps) * MAX_T;
+            const p = getPos(currT);
+            const sp = project3D(p.x, p.y, p.z);
+            if (i === 0) ctx.moveTo(sp.x, sp.y);
+            else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.stroke();
+    }
+    
+    function drawParticle() {
+        const pos = getPos(t);
+        const sp = project3D(pos.x, pos.y, pos.z);
+        const flatSp = project3D(pos.x, pos.y, 0);
+        
+        // Draw vertical drop line to shadow
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(sp.x, sp.y);
+        ctx.lineTo(flatSp.x, flatSp.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Shadow Particle
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.beginPath(); ctx.arc(flatSp.x, flatSp.y, 4, 0, Math.PI * 2); ctx.fill();
+
+        // Real Particle
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 6, 0, Math.PI * 2); ctx.fill();
+        
+        // Draw velocity vector tangent
+        const vel = getVel(t);
+        const vScale = 0.5; // visual multiplier
+        const endPos = { x: pos.x + vel.x*vScale, y: pos.y + vel.y*vScale, z: pos.z + vel.z*vScale };
+        const spVel = project3D(endPos.x, endPos.y, endPos.z);
+        
+        ctx.strokeStyle = '#3b82f6'; // Blue
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(sp.x, sp.y);
+        ctx.lineTo(spVel.x, spVel.y);
+        ctx.stroke();
+        
+        // Simple arrowhead
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath(); ctx.arc(spVel.x, spVel.y, 3, 0, Math.PI * 2); ctx.fill();
+    }
+
+    function draw() {
+        if (canvas.width === 0) return;
+
+        // Clear Background
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Sorting elements in a simple Z-buffer way is tough in 2D canvas,
+        // but for a helix, axes first, path second, particle last works OK.
+        drawAxis();
+        drawPath();
+        drawParticle();
+
+        // Update UI
+        updateUI();
+    }
+
+    function updateUI() {
+        const timeStr = t.toFixed(2);
+        tSlider.value = t;
+        sliderVal.textContent = timeStr + 's';
+        
+        const pos = getPos(t);
+        const speed = getSpeed(t);
+        const len = getPathLength(t);
+        
+        valT.textContent = timeStr + ' s';
+        valPos.textContent = `(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)})`;
+        valSpeed.textContent = speed.toFixed(2);
+        valLen.textContent = len.toFixed(2);
+        
+        if (params.a === params.b) {
+            valSpeed.classList.add('special-case');
+        } else {
+            valSpeed.classList.remove('special-case');
+        }
+    }
+
+    // --- Loop ---
+    function animate(timestamp) {
+        if (!isPlaying) return;
+
+        if (lastTimeObj) {
+            const dt = (timestamp - lastTimeObj) / 1000;
+            t += dt * timeScale;
+            
+            if (t > MAX_T) {
+                t = MAX_T; // stop at end
+                pause();
+            }
+            
+            // Auto rotate camera slightly if playing
+            cam.theta -= 0.005 * timeScale;
+        }
+        lastTimeObj = timestamp;
+
+        draw();
+        
+        if (isPlaying) {
+            animationFrameId = requestAnimationFrame(animate);
+        }
+    }
+
+    function play() {
+        if (t >= MAX_T) t = 0; // auto reset
+        isPlaying = true;
+        lastTimeObj = performance.now();
+        btnPlay.style.display = 'none';
+        btnPause.style.display = 'flex';
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function pause() {
+        isPlaying = false;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        btnPlay.style.display = 'flex';
+        btnPause.style.display = 'none';
+    }
+
+    function reset() {
+        pause();
+        t = 0;
+        cam.theta = Math.PI / 4; // reset rotation
+        draw();
+    }
+
+    // --- Events ---
+    tSlider.addEventListener('input', (e) => {
+        pause();
+        t = parseFloat(e.target.value);
+        draw();
+    });
+    
+    toggleCase.addEventListener('change', (e) => {
+        const isSpecial = e.target.checked;
+        if (isSpecial) {
+            params.a = 3.0;
+            params.b = 3.0; // Circular mode
+        } else {
+            params.a = 3.0;
+            params.b = 1.5; // Elliptical mode
+        }
+        updateEquations();
+        draw();
+    });
+
+    btnPlay.addEventListener('click', play);
+    btnPause.addEventListener('click', pause);
+    btnReset.addEventListener('click', reset);
+    
+    // Interactive 3D Camera Controls
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        lastMouse.x = e.clientX;
+        lastMouse.y = e.clientY;
+    });
+    
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const dx = e.clientX - lastMouse.x;
+        const dy = e.clientY - lastMouse.y;
+        
+        cam.theta -= dx * 0.01;
+        cam.phi += dy * 0.01;
+        
+        // Limit phi to keep upright projection sane
+        cam.phi = Math.max(0, Math.min(Math.PI/2 - 0.1, cam.phi));
+        
+        lastMouse.x = e.clientX;
+        lastMouse.y = e.clientY;
+        
+        if (!isPlaying) draw();
+    });
+    
+    window.addEventListener('load', () => {
+        updateEquations();
+        resizeCanvas();
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>

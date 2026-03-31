@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Projectile Motion Simulator with Vectors</title>
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --danger: #dc3545;
+            --success: #198754;
+            --bg: #f8f9fa;
+            --panel: #ffffff;
+            --text: #333;
+            --grid: #dee2e6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        /* Side Panel: Controls and Info */
+        .panel {
+            background: var(--panel);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel h2 { margin-top: 0; text-align: center; color: var(--primary); }
+        .panel h3 { margin: 10px 0 5px 0; font-size: 1.1em; border-bottom: 2px solid var(--grid); padding-bottom: 5px;}
+
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-label { font-weight: bold; display: flex; justify-content: space-between; }
+        .control-label span { font-weight: normal; color: #6c757d; }
+        
+        input[type=range] { width: 100%; cursor: pointer; }
+
+        .button-group { display: flex; gap: 10px; margin-top: 10px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        #startBtn { background-color: var(--primary); color: white; }
+        #startBtn:hover { background-color: #0b5ed7; }
+        #resetBtn { background-color: #6c757d; color: white; }
+        #resetBtn:hover { background-color: #5a6268; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .stat-box {
+            background: var(--bg);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--grid);
+            text-align: center;
+        }
+        .stat-box span { display: block; font-size: 0.85em; color: #6c757d; margin-bottom: 2px; }
+        .stat-box div { font-size: 1.1em; font-weight: bold; font-family: monospace; }
+
+        /* Main Canvas Area */
+        .canvas-container {
+            background: var(--panel);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden; /* Keep vectors inside */
+        }
+
+        canvas {
+            display: block;
+            background-color: #ffffff; /* Explicit white for grid contrast */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <aside class="panel">
+            <h2>Physics Lab</h2>
+            <p>Adjust parameters and launch. Watch the velocity vectors change.</p>
+
+            <h3>Initial Conditions</h3>
+            <div class="control-group">
+                <label class="control-label" for="v0">Velocity (v₀) <span id="v0Val">100 m/s</span></label>
+                <input type="range" id="v0" min="10" max="150" value="100" step="1">
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="angle">Angle (θ) <span id="angleVal">37°</span></label>
+                <input type="range" id="angle" min="0" max="90" value="37" step="1">
+            </div>
+            <div class="control-group">
+                <label class="control-label" for="gravity">Gravity (g) <span id="gVal">9.8 m/s²</span></label>
+                <input type="range" id="gravity" min="1" max="20" value="9.8" step="0.1">
+            </div>
+
+            <div class="button-group">
+                <button id="startBtn">Launch</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+
+            <h3>Real-Time Data</h3>
+            <div class="stats-grid">
+                <div class="stat-box"><span>Time (s)</span><div id="timeStat">0.00</div></div>
+                <div class="stat-box"><span>X Pos (m)</span><div id="xStat">0.00</div></div>
+                <div class="stat-box"><span>Y Pos (m)</span><div id="yStat">0.00</div></div>
+                <div class="stat-box"><span>Velocity (m/s)</span><div id="vStat">0.00</div></div>
+            </div>
+
+            <h3>Key Results</h3>
+            <div class="stats-grid">
+                <div class="stat-box"><span>Max Height (m)</span><div id="hMaxStat">--</div></div>
+                <div class="stat-box"><span>Range (m)</span><div id="rangeStat">--</div></div>
+            </div>
+        </aside>
+
+        <main class="canvas-container">
+            <canvas id="simCanvas"></canvas>
+        </main>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = canvas.parentElement;
+
+        // UI Elements
+        const v0Slider = document.getElementById('v0');
+        const angleSlider = document.getElementById('angle');
+        const gSlider = document.getElementById('gravity');
+        const v0ValDisplay = document.getElementById('v0Val');
+        const angleValDisplay = document.getElementById('angleVal');
+        const gValDisplay = document.getElementById('gVal');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // Stats Elements
+        const timeEl = document.getElementById('timeStat');
+        const xEl = document.getElementById('xStat');
+        const yEl = document.getElementById('yStat');
+        const vEl = document.getElementById('vStat');
+        const hMaxEl = document.getElementById('hMaxStat');
+        const rangeEl = document.getElementById('rangeStat');
+
+        // Physics State and Config
+        let config = {};
+        let state = {
+            t: 0,
+            isAnimating: false,
+            animationId: null,
+            history: [],
+            hMax: 0
+        };
+
+        // UI & Scaling constants
+        const GRID_SIZE = 50; // pixels per grid line (meters, roughly)
+        const GROUND_Y = 50; // pixels from bottom
+        const VECTOR_SCALE = 1.5; // length multiplier for vectors
+        const timeStep = 0.03; // animation speed (s per frame)
+
+        // Color Palette for Vectors
+        const colors = {
+            v: '#dc3545', // Red (Main velocity)
+            vx: '#0d6efd', // Blue (Horizontal component)
+            vy: '#198754', // Green (Vertical component)
+            g: '#333333' // Dark Grey (Gravity)
+        };
+
+        // --- Core Functions ---
+
+        function init() {
+            // Set canvas size dynamically
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            updateConfigFromUI();
+            resetAnimation();
+            
+            // Add Event Listeners
+            v0Slider.addEventListener('input', updateUIAndReset);
+            angleSlider.addEventListener('input', updateUIAndReset);
+            gSlider.addEventListener('input', updateUIAndReset);
+            startBtn.addEventListener('click', startAnimation);
+            resetBtn.addEventListener('click', resetAnimation);
+            window.addEventListener('resize', init); // Handle window resizing
+        }
+
+        function updateConfigFromUI() {
+            const v0 = parseFloat(v0Slider.value);
+            const angleDeg = parseFloat(angleSlider.value);
+            const g = parseFloat(gSlider.value);
+
+            v0ValDisplay.innerText = `${v0} m/s`;
+            angleValDisplay.innerText = `${angleDeg}°`;
+            gValDisplay.innerText = `${g.toFixed(1)} m/s²`;
+
+            const angleRad = angleDeg * (Math.PI / 180);
+            const v0x = v0 * Math.cos(angleRad);
+            const v0y = v0 * Math.sin(angleRad);
+            const tof = (angleDeg === 0) ? 0 : (2 * v0y / g);
+            const range = v0x * tof;
+            const hMax = (angleDeg === 0) ? 0 : (v0y * v0y / (2 * g));
+
+            config = { v0, angleDeg, angleRad, g, v0x, v0y, tof, range, hMax };
+
+            // Update static results UI
+            hMaxEl.innerText = hMax.toFixed(2);
+            rangeEl.innerText = range.toFixed(2);
+        }
+
+        function updateUIAndReset() {
+            updateConfigFromUI();
+            resetAnimation();
+        }
+
+        // --- Drawing Functions ---
+
+        // Convert Physics Meters to Canvas Pixels
+        function toCanvasX(m) { return m; } // Simple 1:1 scale for this simple example
+        function toCanvasY(m) { return canvas.height - GROUND_Y - m; }
+
+        function drawGrid() {
+            ctx.beginPath();
+            ctx.strokeStyle = '#f1f3f5'; // Very subtle grid
+            ctx.lineWidth = 1;
+
+            // Vertical lines (X)
+            for (let x = 0; x <= canvas.width; x += GRID_SIZE) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+            }
+            // Horizontal lines (Y)
+            for (let y = canvas.height - GROUND_Y; y >= 0; y -= GRID_SIZE) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+            }
+            ctx.stroke();
+
+            // Ground Line
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height - GROUND_Y);
+            ctx.lineTo(canvas.width, canvas.height - GROUND_Y);
+            ctx.strokeStyle = '#ADB5BD';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Axis Labels
+            ctx.fillStyle = '#6c757d';
+            ctx.font = '12px monospace';
+            ctx.fillText('0m (Range)', 5, canvas.height - GROUND_Y + 20);
+            ctx.fillText('0m (Height)', 5, canvas.height - GROUND_Y - 5);
+        }
+
+        function drawVector(startX, startY, vx, vy, color, label) {
+            const endX = startX + (vx * VECTOR_SCALE);
+            const endY = startY - (vy * VECTOR_SCALE); // Remember Canvas Y is inverted
+
+            // Draw arrow line
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Draw arrowhead
+            const headlen = 10; // length of head in pixels
+            const angle = Math.atan2(endY - startY, endX - startX);
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - headlen * Math.cos(angle - Math.PI / 6), endY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(endX - headlen * Math.cos(angle + Math.PI / 6), endY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Label
+            if (label) {
+                ctx.fillStyle = color;
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText(label, endX + 5, endY - 5);
+            }
+        }
+
+        function drawProjectile(x, y, vx, vy) {
+            const canvasX = toCanvasX(x);
+            const canvasY = toCanvasY(y);
+
+            // Draw Trail (Path History)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(13, 110, 253, 0.2)'; // Faint blue trail
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]); // Dotted trail
+            state.history.forEach((point, index) => {
+                if (index === 0) ctx.moveTo(toCanvasX(point.x), toCanvasY(point.y));
+                else ctx.lineTo(toCanvasX(point.x), toCanvasY(point.y));
+            });
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+
+            // Draw the Projectile Sphere
+            ctx.beginPath();
+            ctx.arc(canvasX, canvasY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = colors.v; // Red primary color
+            ctx.fill();
+            ctx.strokeStyle = '#fff'; // White border
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Vectors
+            if (state.t >= 0) {
+                // Main velocity vector (v)
+                const vInstant = Math.sqrt(vx*vx + vy*vy);
+                drawVector(canvasX, canvasY, vx, vy, colors.v, `v=${vInstant.toFixed(1)}`);
+                
+                // Components (vx, vy) - offset slightly for clarity
+                drawVector(canvasX + 3, canvasY, vx, 0, colors.vx, `vx`);
+                drawVector(canvasX, canvasY - 3, 0, vy, colors.vy, `vy`);
+
+                // Gravity vector (g) - constant, always down
+                drawVector(canvasX, canvasY + 12, 0, -config.g * 5, colors.g, `g`); 
+                // multiplied by 5 to make g visually significant among velocities
+            }
+        }
+
+        // --- Simulation Loop ---
+
+        function update() {
+            if (!state.isAnimating) return;
+
+            // Physics Calculations (Kinematics)
+            const x = config.v0x * state.t;
+            const y = (config.v0y * state.t) - (0.5 * config.g * state.t * state.t);
+            const vx = config.v0x; // horizontal velocity is constant
+            const vy = config.v0y - (config.g * state.t); // vertical velocity changes with g
+            const vInstant = Math.sqrt(vx*vx + vy*vy);
+
+            // Track Max Height
+            if (y > state.hMax) state.hMax = y;
+
+            // Add point to history trail
+            state.history.push({x, y});
+
+            // Refresh Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawProjectile(x, y, vx, vy);
+
+            // Update UI Stats
+            timeEl.innerText = state.t.toFixed(2);
+            xEl.innerText = x.toFixed(2);
+            yEl.innerText = y.toFixed(2);
+            vEl.innerText = vInstant.toFixed(1);
+
+            // Ground Collision Detection
+            if (y < 0 && state.t > 0) {
+                endAnimation();
+                return;
+            }
+
+            state.t += timeStep;
+            state.animationId = requestAnimationFrame(update);
+        }
+
+        // --- Controls Functions ---
+
+        function startAnimation() {
+            if (!state.isAnimating) {
+                if (state.t === 0) {
+                    state.history = []; // Clear previous run
+                    state.hMax = 0;
+                }
+                state.isAnimating = true;
+                startBtn.disabled = true;
+                resetBtn.disabled = false; // Allow reset during animation
+                disableSliders(true);
+                update();
+            }
+        }
+
+        function endAnimation() {
+            state.isAnimating = false;
+            startBtn.disabled = false;
+            disableSliders(false);
+            cancelAnimationFrame(state.animationId);
+            
+            // Snap to final exact mathematical values
+            timeEl.innerText = config.tof.toFixed(2);
+            xEl.innerText = config.range.toFixed(2);
+            yEl.innerText = "0.00";
+            vEl.innerText = Math.sqrt(config.v0x**2 + (-config.v0y)**2).toFixed(1); // impact v
+            hMaxEl.innerText = state.hMax.toFixed(2); // Use actual tracked hMax
+            
+            // Re-draw final frame to snap everything
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            const vyFinal = config.v0y - (config.g * config.tof);
+            drawProjectile(config.range, 0, config.v0x, vyFinal);
+        }
+
+        function resetAnimation() {
+            state.isAnimating = false;
+            startBtn.disabled = false;
+            disableSliders(false);
+            cancelAnimationFrame(state.animationId);
+            
+            state.t = 0;
+            state.history = [];
+            state.hMax = 0;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            
+            // Initial position projectile and initial vectors
+            drawProjectile(0, 0, config.v0x, config.v0y);
+            
+            timeEl.innerText = "0.00";
+            xEl.innerText = "0.00";
+            yEl.innerText = "0.00";
+            vEl.innerText = config.v0.toFixed(1);
+        }
+
+        function disableSliders(disabled) {
+            v0Slider.disabled = disabled;
+            angleSlider.disabled = disabled;
+            gSlider.disabled = disabled;
+        }
+
+        // --- Run on Load ---
+        init();
+
+    </script>
+</body>
+</html>

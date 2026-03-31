@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Slit Interference</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #f8fafc;
+            --accent-main: #10b981; /* Emerald */
+            --accent-secondary: #0ea5e9; /* Sky blue */
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: var(--accent-main);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin: 0 0 10px 0;
+            color: var(--accent-secondary);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-main);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent-main);
+            color: #0f172a;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        
+        .overlay-instruction {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            pointer-events: none;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+            border: 1px solid var(--glass-border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <div class="glass-panel">
+                <h1>Double Slit Experiment</h1>
+                
+                <div class="control-group">
+                    <label>
+                        Wavelength (λ) <span id="val-lambda">1.0</span>
+                    </label>
+                    <input type="range" id="input-lambda" min="0.2" max="3.0" step="0.1" value="1.0">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Slit Distance (d) <span id="val-d">2.0</span>
+                    </label>
+                    <input type="range" id="input-d" min="0.5" max="8.0" step="0.1" value="2.0">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Angular Freq (ω) <span id="val-w">5.0</span>
+                    </label>
+                    <input type="range" id="input-w" min="0" max="15" step="0.5" value="5.0">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Resolution <span id="val-res">High</span>
+                    </label>
+                    <input type="range" id="input-res" min="1" max="3" step="1" value="2">
+                </div>
+
+                <div class="button-group">
+                    <button id="btn-play">Pause</button>
+                </div>
+            </div>
+            <div class="glass-panel" style="flex:1;">
+                <h2>About the Math</h2>
+                <div style="font-size: 0.9em; line-height: 1.5; color: #cbd5e1;">
+                    <p><strong>Superposition:</strong></p>
+                    <p style="font-family: monospace; font-size: 0.85em;">u = (A/r₁)sin(k r₁ - ωt) <br>  + (A/r₂)sin(k r₂ - ωt)</p>
+                    <p><strong>Constructive Interference:</strong> Bright bands where the path difference is a multiple of λ.</p>
+                    <p><strong>Destructive Interference:</strong> Dark lines where waves cancel perfectly to zero.</p>
+                    <p><em>Adjusting the Slit distance or Wavelength will change the interference fringes projected on the right.</em></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Animation -->
+        <div class="main-content" id="main-content">
+            <canvas id="animCanvas"></canvas>
+            <div class="overlay-instruction">Observe the interference pattern fringes on the right</div>
+        </div>
+    </div>
+
+    <script>
+        // Parameters
+        let params = { lambda: 1.0, d: 2.0, w: 5.0, A: 5.0 };
+        let resolutionScale = 2; // 1 = Low (fast), 2 = Med, 3 = High
+        
+        // Physics constants derived from params
+        let k = 2 * Math.PI / params.lambda;
+        
+        let isPlaying = true;
+        let time = 0;
+        let lastTime = 0;
+        
+        // DOM Elements
+        const DOM = {
+            lambda: document.getElementById('input-lambda'),
+            d: document.getElementById('input-d'),
+            w: document.getElementById('input-w'),
+            res: document.getElementById('input-res'),
+            valLambda: document.getElementById('val-lambda'),
+            valD: document.getElementById('val-d'),
+            valW: document.getElementById('val-w'),
+            valRes: document.getElementById('val-res'),
+            btnPlay: document.getElementById('btn-play'),
+        };
+
+        const canvas = document.getElementById('animCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        let imageData;
+        let pBuf; // Uint32Array buffer for fast pixel manipulation
+
+        function initCanvasSize() {
+            const rect = document.getElementById('main-content').getBoundingClientRect();
+            // Scale down resolution to maintain 60FPS
+            const scales = [10, 5, 2]; // Divisors
+            const div = scales[resolutionScale - 1];
+            
+            canvas.width = Math.floor(rect.width / div);
+            canvas.height = Math.floor(rect.height / div);
+            
+            imageData = ctx.createImageData(canvas.width, canvas.height);
+            pBuf = new Uint32Array(imageData.data.buffer);
+        }
+        
+        window.addEventListener('resize', initCanvasSize);
+
+        // UI Event Listeners
+        function updateParams() {
+            params.lambda = parseFloat(DOM.lambda.value);
+            params.d = parseFloat(DOM.d.value);
+            params.w = parseFloat(DOM.w.value);
+            
+            k = (2 * Math.PI) / params.lambda;
+            
+            const newRes = parseInt(DOM.res.value);
+            if(newRes !== resolutionScale) {
+                resolutionScale = newRes;
+                initCanvasSize();
+            }
+            
+            DOM.valLambda.textContent = params.lambda.toFixed(1);
+            DOM.valD.textContent = params.d.toFixed(1);
+            DOM.valW.textContent = params.w.toFixed(1);
+            DOM.valRes.textContent = ["Low", "Med", "High"][resolutionScale - 1];
+        }
+        
+        DOM.lambda.addEventListener('input', updateParams);
+        DOM.d.addEventListener('input', updateParams);
+        DOM.w.addEventListener('input', updateParams);
+        DOM.res.addEventListener('change', updateParams);
+        
+        DOM.btnPlay.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            DOM.btnPlay.textContent = isPlaying ? 'Pause' : 'Play';
+            if (isPlaying) lastTime = performance.now();
+        });
+
+        updateParams();
+        setTimeout(initCanvasSize, 50);
+
+        // Color mapping returning ABGR
+        function heightToColor(h, maxH) {
+            let norm = h / maxH;
+            if (norm > 1) norm = 1;
+            if (norm < -1) norm = -1;
+            
+            // Map to a gradient involving Emerald theme:
+            // -1 = Dark Grey / Black
+            // 0 = Dark Emerald
+            // +1 = Bright Emerald White
+            
+            let r=0, g=0, b=0;
+            if (norm < 0) {
+                let t = norm + 1; // 0 to 1
+                r = Math.floor(t * 15);
+                g = Math.floor(t * 50);
+                b = Math.floor(t * 40);
+            } else {
+                let t = norm; // 0 to 1
+                r = Math.floor(t * 220 + 15);
+                g = Math.floor(t * 220 + 50);
+                b = Math.floor(t * 200 + 40);
+            }
+            
+            return (255 << 24) | (b << 16) | (g << 8) | r;
+        }
+
+        // Main Render Function
+        function renderWave() {
+            if (!pBuf || canvas.width === 0) return;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const aspect = width / height;
+            
+            // Wall is at x = 1.0 (physically) out of 10*aspect
+            const wallPhysX = 1.0; 
+            const centerPhysY = 5.0; // Y space is [0, 10]
+            
+            const s1 = { x: wallPhysX, y: centerPhysY - params.d/2 };
+            const s2 = { x: wallPhysX, y: centerPhysY + params.d/2 };
+            
+            const maxAmplitude = params.A * 1.5; // Cap to make colors pop
+
+            let idx = 0;
+            for (let y = 0; y < height; y++) {
+                let physY = (y / height) * 10;
+                
+                for (let x = 0; x < width; x++) {
+                    let physX = (x / width) * 10 * aspect;
+                    
+                    if (physX < wallPhysX) {
+                        // Behind the wall, draw black/dark
+                        pBuf[idx++] = (255 << 24) | (30 << 16) | (30 << 8) | 20;
+                        continue;
+                    }
+                    
+                    // Distance to slit 1
+                    const dx1 = physX - s1.x;
+                    const dy1 = physY - s1.y;
+                    const dist1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+                    
+                    // Distance to slit 2
+                    const dx2 = physX - s2.x;
+                    const dy2 = physY - s2.y;
+                    const dist2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+                    
+                    // Add waves: A / r * sin(k*r - wt)
+                    // limit r to avoid singularity pole color-blowout at the slit itself
+                    const r1 = Math.max(dist1, 0.2);
+                    const r2 = Math.max(dist2, 0.2);
+                    
+                    const u1 = (params.A / r1) * Math.sin(k * dist1 - params.w * time);
+                    const u2 = (params.A / r2) * Math.sin(k * dist2 - params.w * time);
+                    
+                    const totalU = u1 + u2;
+                    
+                    pBuf[idx++] = heightToColor(totalU, maxAmplitude);
+                }
+            }
+            
+            // Draw the wall slit markers purely for visual context
+            const wallPxX = Math.floor((wallPhysX / (10 * aspect)) * width);
+            const slit1PxY = Math.floor((s1.y / 10) * height);
+            const slit2PxY = Math.floor((s2.y / 10) * height);
+            
+            // Draw wall line
+            for (let y = 0; y < height; y++) {
+                // Gap for the slits
+                if (Math.abs(y - slit1PxY) > 2 && Math.abs(y - slit2PxY) > 2) {
+                    pBuf[y * width + wallPxX] = 0xFF555555; // Grey line
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Animation Loop
+        function loop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            
+            if (isPlaying) {
+                time += dt;
+            }
+            
+            renderWave();
+            requestAnimationFrame(loop);
+        }
+
+        // Start
+        requestAnimationFrame(loop);
+
+    </script>
+</body>
+</html>

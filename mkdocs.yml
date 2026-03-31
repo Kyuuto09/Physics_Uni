@@ -1,0 +1,133 @@
+site_name: Physics basics
+site_url: https://nowitends.github.io/Physics_Problems
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - scheme: default
+      primary: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Dark mode
+    - scheme: slate
+      primary: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/config.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: pl
+          name: Polski
+          build: true
+          nav:
+            - Home: "index.md"
+            - Twoje Rozwiązania:
+                - Wprowadzenie: "Twoje_rozwiazania/00_Intro_solution/index.md"
+                - "Mechanika 1": "Twoje_rozwiazania/01_Mechanics_1_solution/index.md"
+                - "Mechanika 2": "Twoje_rozwiazania/02_Mechanics_2_solution/index.md"
+                - Fale: "Twoje_rozwiazania/03_Waves_solution/index.md"
+                - "Elektromagnetyzm 1": "Twoje_rozwiazania/04_Electromagnetism_1_solution/index.md"
+                - "Elektromagnetyzm 2": "Twoje_rozwiazania/05_Electromagnetism_2_solution/index.md"
+                - Obwody: "Twoje_rozwiazania/06_Circuits_solution/index.md"
+                - Pomiary: "Twoje_rozwiazania/07_Measurements_solution/index.md"
+                - "Astronomia i Astrofizyka": "Twoje_rozwiazania/08_Astronomy_and_Astrophysics_solution/index.md"
+                - Kosmologia: "Twoje_rozwiazania/09_Cosmology_solution/index.md"
+                - "Teoria Względności": "Twoje_rozwiazania/10_Relativity_solution/index.md"
+                - "Fizyka Współczesna": "Twoje_rozwiazania/11_Modern_Physics_solution/index.md"
+            - Animations:
+                - Mechanics 1:
+                    - "Projectile Motion": "Animations/01_Mechanics_1/mechanics1_solution1.html"
+                    - "Projectile Optimization": "Animations/01_Mechanics_1/mechanics1_solution2.html"
+                    - "Path Intersection": "Animations/01_Mechanics_1/mechanics1_solution3.html"
+                    - "River Boat (Relative Velocity)": "Animations/01_Mechanics_1/mechanics1_solution5.html"
+                - "Projectile Motion": "Animations/projectile_motion.html"
+                - "Pendulum": "Animations/pendulum.html"
+                - "Conics": "Animations/conics.html"
+                - "Kepler's Laws": "Animations/kepler.html"
+                - "Chaotic Pendulum": "Animations/chaos_pendulum.html"
+                - "Work Integral": "Animations/work_integral.html"
+                - "Flux": "Animations/flux.html"
+                - "Electric Field Integration": "Animations/electric_field_integration.html"
+                - "Atom Waves": "Animations/wave_atoms.html"
+                - "Gravitational Acceleration Measurement": "Animations/grav_acc_measure.html"
+                - "Numeric Integrator": "Animations/numeric_integrator.html"
+            - Wprowadzenie: "00_Intro.md"
+            - Mechanika 1: "01_Mechanics_1.md"
+            - Mechanika 2: "02_Mechanics_2.md"
+            - Fale: "03_Waves.md"
+            - Elektromagnetyzm 1: "04_Electromagnetism_1.md"
+            - Elektromagnetyzm 2: "05_Electromagnetism_2.md"
+            - Obwody: "06_Circuits.md"
+            - Pomiary: "07_Measurements.md"
+            - Astronomia i Astrofizyka: "08_Astronomy_and_Astrophysics.md"
+            - Kosmologia: "09_Cosmology.md"
+            - Teoria Względności: "10_Relativity.md"
+            - Fizyka Współczesna: "11_Modern_Physics.md"
+        - locale: en
+          name: English
+          default: true
+          build: true
+          nav:
+            - Home: "index.md"
+            - Your Solutions:
+                - Introduction: "Your_solutions_all/00_Intro.md"
+                - "Mechanics 1": "Your_solutions_all/01_Mechanics_1.md"
+                - "Mechanics 2": "Your_solutions_all/02_Mechanics_2.md"
+                - Waves: "Your_solutions_all/03_Waves.md"
+                - "Electromagnetism 1": "Your_solutions_all/04_Electromagnetism_1.md"
+                - "Electromagnetism 2": "Your_solutions_all/05_Electromagnetism_2.md"
+                - Circuits: "Your_solutions_all/06_Circuits.md"
+                - Measurements: "Your_solutions_all/07_Measurements.md"
+                - "Astronomy and Astrophysics": "Your_solutions_all/08_Astronomy_and_Astrophysics.md"
+                - Cosmology: "Your_solutions_all/09_Cosmology.md"
+                - Relativity: "Your_solutions_all/10_Relativity.md"
+                - "Modern Physics I": "Your_solutions_all/11_Modern_Physics_1.md"
+                - "Modern Physics II": "Your_solutions_all/12_Modern_Physics_2.md"
+            - Animations:
+                - Mechanics 1:
+                    - "Projectile Motion": "Animations/01_Mechanics_1/mechanics1_solution1.html"
+                    - "Range Optimization": "Animations/01_Mechanics_1/mechanics1_solution2.html"
+                    - "Path Intersection": "Animations/01_Mechanics_1/mechanics1_solution3.html"
+                    - "River Boat (Relative Velocity)": "Animations/01_Mechanics_1/mechanics1_solution5.html"
+                - "Projectile Motion": "Animations/projectile_motion.html"
+                - "Pendulum": "Animations/pendulum.html"
+                - "Conics": "Animations/conics.html"
+                - "Kepler's Laws": "Animations/kepler.html"
+                - "Chaotic Pendulum": "Animations/chaos_pendulum.html"
+                - "Work Integral": "Animations/work_integral.html"
+                - "Flux": "Animations/flux.html"
+                - "Electric Field Integration": "Animations/electric_field_integration.html"
+                - "Atom Waves": "Animations/wave_atoms.html"
+                - "Gravitational Acceleration Measurement": "Animations/grav_acc_measure.html"
+                - "Numeric Integrator": "Animations/numeric_integrator.html"
+            - Introduction: "00_Intro.md"
+            - "Mechanics 1": "01_Mechanics_1.md"
+            - "Mechanics 2": "02_Mechanics_2.md"
+            - Waves: "03_Waves.md"
+            - "Electromagnetism 1": "04_Electromagnetism_1.md"
+            - "Electromagnetism 2": "05_Electromagnetism_2.md"
+            - Circuits: "06_Circuits.md"
+            - Measurements: "07_Measurements.md"
+            - "Astronomy and Astrophysics": "08_Astronomy_and_Astrophysics.md"
+            - Cosmology: "09_Cosmology.md"
+            - Relativity: "10_Relativity.md"
+            - "Modern Physics": "11_Modern_Physics.md"

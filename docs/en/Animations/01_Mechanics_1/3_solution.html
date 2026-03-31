@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Path Intersection and Minimum Distance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-alice: #ef4444; /* Red */
+            --accent-bob: #3b82f6; /* Blue */
+            --accent-neutral: #10b981; /* Green */
+            --accent-highlight: #fbbf24; /* Amber */
+            --border-color: #334155;
+            --grid-color: rgba(255, 255, 255, 0.05);
+            --axis-color: rgba(255, 255, 255, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 600px;
+            }
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 380px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.alice { color: var(--accent-alice); }
+        .stat-value.bob { color: var(--accent-bob); }
+        .stat-value.distance { color: var(--accent-neutral); }
+        .stat-value.time { color: var(--text-main); }
+        
+        .distance-critical {
+            color: var(--accent-highlight) !important;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .equations {
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .equations div {
+            margin-bottom: 0.5rem;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button.primary {
+            background: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+        }
+
+        button.primary:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .notification {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--accent-highlight);
+            color: var(--accent-highlight);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="canvas-container">
+        <canvas id="simCanvas"></canvas>
+        <div id="minDistNotif" class="notification">
+            Minimum Distance Reached!
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Path Intersection</h1>
+            <p>Visualizing moving bodies and the minimum distance between their paths over time.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Data</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Time ($t$)</span>
+                    <span class="stat-value time" id="val-t">0.00 s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Distance ($d$)</span>
+                    <span class="stat-value distance" id="val-d">7.81 units</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Alice ($x, y$)</span>
+                    <span class="stat-value alice" id="val-alice">(2.00, 8.00)</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Bob ($x, y$)</span>
+                    <span class="stat-value bob" id="val-bob">(-1.00, 2.00)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Equations</div>
+            <div class="equations">
+                <div><span style="color: var(--accent-alice)">Alice:</span> \( A(t) = (2+t, 8-3t) \)</div>
+                <div><span style="color: var(--accent-bob)">Bob:</span> \( B(t) = (2t-1, 2t+2) \)</div>
+                <div>Min dist at \( t = 33/26 \approx 1.27\text{s} \)</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            <div class="slider-container">
+                <label for="timeSlider">
+                    <span>Time Progress ($t=0$ to $3$)</span>
+                    <span id="sliderValue">0.00s</span>
+                </label>
+                <input type="range" id="timeSlider" min="0" max="3" step="0.01" value="0">
+            </div>
+            
+            <div class="btn-group">
+                <button id="btnPlay" class="primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    Play
+                </button>
+                <button id="btnPause" class="secondary" style="display:none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                    Pause
+                </button>
+                <button id="btnReset" class="secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Physics Definitions ---
+    // t ranges from 0 to 3
+    const getAlice = (t) => ({ x: 2 + t, y: 8 - 3 * t });
+    const getBob = (t) => ({ x: 2 * t - 1, y: 2 * t + 2 });
+    const getDistance = (p1, p2) => Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+
+    const MIN_T = 0;
+    const MAX_T = 3;
+    const CRIT_T = 33 / 26; // approx 1.2692
+    const MIN_DIST = 9 / Math.sqrt(26); // approx 1.765
+
+    // --- State ---
+    let t = 0;
+    let isPlaying = false;
+    let animationFrameId = null;
+    let lastTime = 0;
+    const timeScale = 0.5; // seconds per real second
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const tInput = document.getElementById('timeSlider');
+    const tDisplay = document.getElementById('sliderValue');
+    const valT = document.getElementById('val-t');
+    const valD = document.getElementById('val-d');
+    const valA = document.getElementById('val-alice');
+    const valB = document.getElementById('val-bob');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnPause = document.getElementById('btnPause');
+    const btnReset = document.getElementById('btnReset');
+    const notif = document.getElementById('minDistNotif');
+
+    // --- Colors & Aesthetics ---
+    const colors = {
+        bg: '#0b1120',
+        grid: 'rgba(255, 255, 255, 0.05)',
+        axis: 'rgba(255, 255, 255, 0.2)',
+        text: 'rgba(255, 255, 255, 0.6)',
+        alice: '#ef4444',
+        aliceFade: 'rgba(239, 68, 68, 0.3)',
+        bob: '#3b82f6',
+        bobFade: 'rgba(59, 130, 246, 0.3)',
+        dist: '#10b981',
+        highlight: '#fbbf24'
+    };
+
+    // --- Coordinate Mapping ---
+    // Physical region: x from -2 to +6, y from -2 to +10
+    const view = {
+        xMin: -2, xMax: 6,
+        yMin: -2, yMax: 10
+    };
+
+    let scale = 1, offsetX = 0, offsetY = 0;
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        // Calculate scale to fit to view
+        const scaleX = canvas.width / (view.xMax - view.xMin);
+        const scaleY = canvas.height / (view.yMax - view.yMin);
+        
+        // Use the smaller scale to keep aspect ratio 1:1 (square grid)
+        scale = Math.min(scaleX, scaleY) * 0.85; // 85% of smaller dim for margin
+        
+        // Center the coordinate system
+        const physWidth = (view.xMax - view.xMin) * scale;
+        const physHeight = (view.yMax - view.yMin) * scale;
+        
+        offsetX = (canvas.width - physWidth) / 2 - view.xMin * scale;
+        offsetY = (canvas.height - physHeight) / 2 + view.yMax * scale; // +y is up
+
+        draw();
+    }
+
+    function toScreen(x, y) {
+        return {
+            x: offsetX + x * scale,
+            y: offsetY - y * scale // y is inverted on standard canvas
+        };
+    }
+
+    // --- Drawing functions ---
+    function drawGrid() {
+        ctx.strokeStyle = colors.grid;
+        ctx.lineWidth = 1;
+        ctx.fillStyle = colors.text;
+        ctx.font = '10px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+
+        // Draw X lines
+        for (let x = Math.floor(view.xMin); x <= Math.ceil(view.xMax); x++) {
+            const start = toScreen(x, view.yMin);
+            const end = toScreen(x, view.yMax);
+            
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+
+            if (x !== 0) {
+                const pos = toScreen(x, 0);
+                ctx.fillText(x, pos.x, pos.y + 5);
+            }
+        }
+
+        // Draw Y lines
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let y = Math.floor(view.yMin); y <= Math.ceil(view.yMax); y++) {
+            const start = toScreen(view.xMin, y);
+            const end = toScreen(view.xMax, y);
+            
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+
+            if (y !== 0) {
+                const pos = toScreen(0, y);
+                ctx.fillText(y, pos.x - 5, pos.y);
+            }
+        }
+
+        // Make axes stronger
+        ctx.strokeStyle = colors.axis;
+        ctx.lineWidth = 2;
+        
+        // X axis
+        const x_axis_start = toScreen(view.xMin, 0);
+        const x_axis_end = toScreen(view.xMax, 0);
+        ctx.beginPath();
+        ctx.moveTo(x_axis_start.x, x_axis_start.y);
+        ctx.lineTo(x_axis_end.x, x_axis_end.y);
+        ctx.stroke();
+
+        // Y axis
+        const y_axis_start = toScreen(0, view.yMin);
+        const y_axis_end = toScreen(0, view.yMax);
+        ctx.beginPath();
+        ctx.moveTo(y_axis_start.x, y_axis_start.y);
+        ctx.lineTo(y_axis_end.x, y_axis_end.y);
+        ctx.stroke();
+        
+        ctx.fillText('0', x_axis_start.x - 5 + (0-view.xMin)*scale, y_axis_end.y + 15 + (view.yMax-0)*scale);
+    }
+
+    function drawPath(fn, tMax, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        
+        const steps = 50;
+        for (let i = 0; i <= steps; i++) {
+            const currT = (i / steps) * tMax;
+            const p = fn(currT);
+            const sp = toScreen(p.x, p.y);
+            if (i === 0) ctx.moveTo(sp.x, sp.y);
+            else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    function drawDot(p, color, label) {
+        const sp = toScreen(p.x, p.y);
+        
+        // Glow effect
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = color;
+        ctx.fillStyle = color;
+        
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 0; // reset
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, sp.x, sp.y - 12);
+    }
+
+    function draw() {
+        // Clear
+        ctx.fillStyle = colors.bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        drawGrid();
+
+        // Draw complete paths faintly
+        drawPath(getAlice, MAX_T, colors.aliceFade);
+        drawPath(getBob, MAX_T, colors.bobFade);
+
+        // Current positions
+        const a = getAlice(t);
+        const b = getBob(t);
+        const d = getDistance(a, b);
+
+        // The distance line
+        const sa = toScreen(a.x, a.y);
+        const sb = toScreen(b.x, b.y);
+
+        const isMinDist = Math.abs(t - CRIT_T) < 0.05;
+
+        // Draw line between them
+        ctx.strokeStyle = isMinDist ? colors.highlight : colors.dist;
+        ctx.lineWidth = isMinDist ? 3 : 2;
+        ctx.beginPath();
+        ctx.moveTo(sa.x, sa.y);
+        ctx.lineTo(sb.x, sb.y);
+        ctx.stroke();
+
+        // Draw text for distance
+        ctx.fillStyle = isMinDist ? colors.highlight : colors.text;
+        ctx.font = isMinDist ? 'bold 14px Inter' : '12px Inter';
+        ctx.textAlign = 'center';
+        const midX = (sa.x + sb.x) / 2;
+        const midY = (sa.y + sb.y) / 2;
+        
+        // Calc angle for text
+        const dxOff = sb.x - sa.x;
+        const dyOff = sb.y - sa.y;
+        let angle = Math.atan2(dyOff, dxOff);
+        // keep text upright
+        if (angle > Math.PI/2 || angle < -Math.PI/2) angle += Math.PI;
+
+        ctx.save();
+        ctx.translate(midX, midY);
+        ctx.rotate(angle);
+        ctx.fillText(`d = ${d.toFixed(2)}`, 0, -8);
+        ctx.restore();
+
+        // Draw Dots
+        drawDot(a, colors.alice, 'Alice');
+        drawDot(b, colors.bob, 'Bob');
+
+        // Update UI Text
+        updateUI(a, b, d, isMinDist);
+    }
+
+    function updateUI(a, b, d, isMinDist) {
+        const timeStr = t.toFixed(2);
+        tInput.value = t;
+        tDisplay.textContent = timeStr + 's';
+        valT.textContent = timeStr + ' s';
+        
+        valA.textContent = `(${a.x.toFixed(2)}, ${a.y.toFixed(2)})`;
+        valB.textContent = `(${b.x.toFixed(2)}, ${b.y.toFixed(2)})`;
+        valD.textContent = d.toFixed(2) + ' units';
+
+        if (isMinDist) {
+            valD.classList.add('distance-critical');
+            notif.classList.add('show');
+        } else {
+            valD.classList.remove('distance-critical');
+            notif.classList.remove('show');
+        }
+    }
+
+    // --- Animation Loop ---
+    function animate(timestamp) {
+        if (!isPlaying) return;
+
+        if (lastTime) {
+            const dt = (timestamp - lastTime) / 1000;
+            t += dt * timeScale;
+            
+            if (t > MAX_T) {
+                t = MAX_T; // stop at end
+                pause();
+            }
+        }
+        lastTime = timestamp;
+
+        draw();
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function play() {
+        if (t >= MAX_T) t = 0; // auto reset
+        isPlaying = true;
+        lastTime = 0;
+        btnPlay.style.display = 'none';
+        btnPause.style.display = 'flex';
+        animationFrameId = requestAnimationFrame(animate);
+    }
+
+    function pause() {
+        isPlaying = false;
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        btnPlay.style.display = 'flex';
+        btnPause.style.display = 'none';
+    }
+
+    function reset() {
+        pause();
+        t = 0;
+        draw();
+    }
+
+    // --- Event Listeners ---
+    tInput.addEventListener('input', (e) => {
+        pause();
+        t = parseFloat(e.target.value);
+        draw();
+    });
+
+    btnPlay.addEventListener('click', play);
+    btnPause.addEventListener('click', pause);
+    btnReset.addEventListener('click', reset);
+    
+    // Ensure resize is handled after dom is fully parsed
+    window.addEventListener('load', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>
