@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Damped Harmonic Oscillator Animation</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #f8fafc;
+            --accent-main: #38bdf8;
+            --accent-secondary: #c084fc;
+            --mass-color: #f43f5e;
+            --spring-color: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: var(--accent-main);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin: 0 0 10px 0;
+            color: var(--accent-secondary);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-main);
+        }
+
+        .status-box {
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 1.05rem;
+        }
+
+        .status-box span {
+            color: var(--accent-main);
+            font-weight: bold;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent-main);
+            color: #0f172a;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: var(--accent-secondary);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .view-panel {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+
+        .charts-row {
+            display: flex;
+            gap: 20px;
+            height: 40%;
+        }
+
+        .chart-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        .chart-title {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            z-index: 10;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <div class="glass-panel">
+                <h1>Harmonic Oscillator</h1>
+                
+                <div class="control-group">
+                    <label>
+                        Mass (m) <span id="val-m">10.0 kg</span>
+                    </label>
+                    <input type="range" id="input-m" min="1" max="25" step="0.1" value="10">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Spring Constant (k) <span id="val-k">20.0 N/m</span>
+                    </label>
+                    <input type="range" id="input-k" min="2" max="100" step="0.5" value="20">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Damping (b) <span id="val-b">2.0</span>
+                    </label>
+                    <input type="range" id="input-b" min="0" max="60" step="0.5" value="2">
+                </div>
+
+                <div class="status-box">
+                    <div>State: <span id="system-state">Underdamped</span></div>
+                    <div style="font-size: 0.85em; margin-top: 5px; color: #94a3b8;">
+                        b²: <span id="val-b2">4</span> | 4mk: <span id="val-4mk">800</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="btn-play">Pause</button>
+                    <button id="btn-reset" class="secondary">Reset</button>
+                </div>
+            </div>
+            <div class="glass-panel" style="flex:1;">
+                <h2>About the Math</h2>
+                <div style="font-size: 0.9em; line-height: 1.5; color: #cbd5e1;">
+                    <p><strong>Equation:</strong> <br> m(d²x/dt²) + b(dx/dt) + kx = 0</p>
+                    <p><strong>Underdamped:</strong> b² < 4mk. The system oscillates back and forth.</p>
+                    <p><strong>Critically Damped:</strong> b² = 4mk. The fastest return to equilibrium without oscillating.</p>
+                    <p><strong>Overdamped:</strong> b² > 4mk. A sluggish, exponentially decaying return to 0.</p>
+                    <p><em>Resolved using 4th-Order Runge-Kutta numerical integration (RK4).</em></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Animation & Charts -->
+        <div class="main-content">
+            <div class="glass-panel view-panel" id="anim-container">
+                <canvas id="animCanvas"></canvas>
+            </div>
+            
+            <div class="charts-row">
+                <div class="glass-panel view-panel chart-container" id="time-container">
+                    <div class="chart-title">Position vs Time x(t)</div>
+                    <canvas id="timeCanvas"></canvas>
+                </div>
+                <div class="glass-panel view-panel chart-container" id="phase-container">
+                    <div class="chart-title">Phase Portrait (v vs x)</div>
+                    <canvas id="phaseCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Physics State
+        let state = { x: 5, v: 0, t: 0 }; // x=position offset, v=velocity
+        let params = { m: 10, k: 20, b: 2 };
+        let history = []; // stores {t, x, v}
+        let isPlaying = true;
+        let lastTime = 0;
+        
+        // DOM Elements
+        const DOM = {
+            m: document.getElementById('input-m'),
+            k: document.getElementById('input-k'),
+            b: document.getElementById('input-b'),
+            valM: document.getElementById('val-m'),
+            valK: document.getElementById('val-k'),
+            valB: document.getElementById('val-b'),
+            btnPlay: document.getElementById('btn-play'),
+            btnReset: document.getElementById('btn-reset'),
+            sysState: document.getElementById('system-state'),
+            valB2: document.getElementById('val-b2'),
+            val4mk: document.getElementById('val-4mk'),
+        };
+
+        // Canvases
+        const cAnim = document.getElementById('animCanvas');
+        const ctxAnim = cAnim.getContext('2d');
+        const cTime = document.getElementById('timeCanvas');
+        const ctxTime = cTime.getContext('2d');
+        const cPhase = document.getElementById('phaseCanvas');
+        const ctxPhase = cPhase.getContext('2d');
+
+        function resizeCanvases() {
+            const containers = [
+                {c: cAnim, p: document.getElementById('anim-container')},
+                {c: cTime, p: document.getElementById('time-container')},
+                {c: cPhase, p: document.getElementById('phase-container')}
+            ];
+            containers.forEach(item => {
+                const rect = item.p.getBoundingClientRect();
+                item.c.width = rect.width;
+                item.c.height = rect.height;
+            });
+        }
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
+
+        // UI Event Listeners
+        function updateParams() {
+            params.m = parseFloat(DOM.m.value);
+            params.k = parseFloat(DOM.k.value);
+            params.b = parseFloat(DOM.b.value);
+            
+            DOM.valM.textContent = params.m.toFixed(1) + ' kg';
+            DOM.valK.textContent = params.k.toFixed(1) + ' N/m';
+            DOM.valB.textContent = params.b.toFixed(1);
+            
+            const b2 = params.b * params.b;
+            const four_mk = 4 * params.m * params.k;
+            
+            DOM.valB2.textContent = b2.toFixed(1);
+            DOM.val4mk.textContent = four_mk.toFixed(1);
+            
+            if (Math.abs(b2 - four_mk) < 0.1) {
+                DOM.sysState.textContent = 'Critically Damped';
+                DOM.sysState.style.color = '#c084fc';
+            } else if (b2 < four_mk) {
+                DOM.sysState.textContent = 'Underdamped';
+                DOM.sysState.style.color = '#38bdf8';
+            } else {
+                DOM.sysState.textContent = 'Overdamped';
+                DOM.sysState.style.color = '#fbbf24';
+            }
+        }
+        
+        DOM.m.addEventListener('input', updateParams);
+        DOM.k.addEventListener('input', updateParams);
+        DOM.b.addEventListener('input', updateParams);
+        
+        DOM.btnPlay.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            DOM.btnPlay.textContent = isPlaying ? 'Pause' : 'Play';
+            if (isPlaying) lastTime = performance.now();
+        });
+
+        DOM.btnReset.addEventListener('click', () => {
+            state = { x: 5, v: 0, t: 0 };
+            history = [];
+            if (!isPlaying) {
+                drawAll(); // update frame instantly manually
+            }
+        });
+        
+        updateParams();
+
+        // RK4 Integration
+        function getDerivatives(s, p) {
+            return {
+                dx: s.v,
+                dv: -(p.b / p.m) * s.v - (p.k / p.m) * s.x
+            };
+        }
+
+        function stepRK4(dt) {
+            if (dt > 0.1) dt = 0.1; // Clamp max dt to avoid blowing up on lag
+            
+            let k1 = getDerivatives(state, params);
+            let s2 = { x: state.x + 0.5 * dt * k1.dx, v: state.v + 0.5 * dt * k1.dv };
+            
+            let k2 = getDerivatives(s2, params);
+            let s3 = { x: state.x + 0.5 * dt * k2.dx, v: state.v + 0.5 * dt * k2.dv };
+            
+            let k3 = getDerivatives(s3, params);
+            let s4 = { x: state.x + dt * k3.dx, v: state.v + dt * k3.dv };
+            
+            let k4 = getDerivatives(s4, params);
+            
+            state.x += (dt / 6) * (k1.dx + 2 * k2.dx + 2 * k3.dx + k4.dx);
+            state.v += (dt / 6) * (k1.dv + 2 * k2.dv + 2 * k3.dv + k4.dv);
+            state.t += dt;
+            
+            history.push({ t: state.t, x: state.x, v: state.v });
+            
+            // Limit history to last 500 points to keep it fast
+            if (history.length > 500) history.shift();
+        }
+
+        // Rendering Functions
+        function drawMainAnimation() {
+            ctxAnim.clearRect(0, 0, cAnim.width, cAnim.height);
+            
+            const centerY = cAnim.height / 2;
+            const wallX = 50;
+            const eqX = cAnim.width / 2; // Equilibrium position
+            const pixelsPerUnit = 30; // Scale x to pixels
+            
+            const massX = eqX + state.x * pixelsPerUnit;
+            const massW = Math.max(30, 20 + params.m * 2); // size varies with mass
+            const massH = massW;
+            
+            // Draw Wall
+            ctxAnim.fillStyle = '#64748b';
+            ctxAnim.fillRect(wallX - 20, centerY - 60, 20, 120);
+            
+            // Draw Floor Line
+            ctxAnim.beginPath();
+            ctxAnim.moveTo(wallX - 20, centerY + massH/2);
+            ctxAnim.lineTo(cAnim.width, centerY + massH/2);
+            ctxAnim.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctxAnim.lineWidth = 2;
+            ctxAnim.stroke();
+
+            // Draw Spring
+            ctxAnim.beginPath();
+            ctxAnim.moveTo(wallX, centerY);
+            
+            const numCoils = 15;
+            const coilWidth = (massX - wallX - massW/2) / numCoils;
+            const coilHeight = 20;
+
+            for (let i = 0; i < numCoils; i++) {
+                const cx = wallX + i * coilWidth;
+                ctxAnim.lineTo(cx + coilWidth/4, centerY - coilHeight);
+                ctxAnim.lineTo(cx + coilWidth*3/4, centerY + coilHeight);
+            }
+            ctxAnim.lineTo(massX - massW/2, centerY);
+            ctxAnim.strokeStyle = 'var(--spring-color)';
+            ctxAnim.lineWidth = 3;
+            ctxAnim.stroke();
+            
+            // Draw Dashpot (Damper) representation conceptually (optional, parallel to spring)
+            ctxAnim.beginPath();
+            ctxAnim.moveTo(wallX, centerY + 30);
+            ctxAnim.lineTo(wallX + 40, centerY + 30);
+            ctxAnim.rect(wallX + 40, centerY + 20, 40, 20); // Cylinder
+            ctxAnim.stroke();
+            
+            ctxAnim.beginPath();
+            ctxAnim.moveTo(massX - massW/2, centerY + 30);
+            // Piston depth based on x
+            const pistonDepth = Math.min(Math.max(wallX + 80 - massX + massW/2, -35), 0);
+            ctxAnim.lineTo(wallX + 80 + state.x*5, centerY + 30); 
+            ctxAnim.strokeStyle = 'var(--accent-secondary)';
+            ctxAnim.lineWidth = 3;
+            ctxAnim.stroke();
+
+            // Draw Mass
+            ctxAnim.fillStyle = 'var(--mass-color)';
+            ctxAnim.beginPath();
+            ctxAnim.roundRect(massX - massW/2, centerY - massH/2, massW, massH, 8);
+            ctxAnim.fill();
+            
+            // Draw Equilibrium Line
+            ctxAnim.beginPath();
+            ctxAnim.moveTo(eqX, centerY - 80);
+            ctxAnim.lineTo(eqX, centerY + 80);
+            ctxAnim.setLineDash([5, 5]);
+            ctxAnim.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctxAnim.stroke();
+            ctxAnim.setLineDash([]);
+            
+            // Draw Velocity Vector
+            if (Math.abs(state.v) > 0.1) {
+                ctxAnim.beginPath();
+                ctxAnim.moveTo(massX, centerY - massH/2 - 10);
+                ctxAnim.lineTo(massX + state.v * 10, centerY - massH/2 - 10);
+                ctxAnim.strokeStyle = '#22c55e'; // green velocity
+                ctxAnim.lineWidth = 3;
+                ctxAnim.stroke();
+                // Arrowhead
+                ctxAnim.beginPath();
+                ctxAnim.arc(massX + state.v * 10, centerY - massH/2 - 10, 4, 0, Math.PI*2);
+                ctxAnim.fillStyle = '#22c55e';
+                ctxAnim.fill();
+            }
+        }
+
+        function drawTimeGraph() {
+            ctxTime.clearRect(0, 0, cTime.width, cTime.height);
+            if (history.length === 0) return;
+            
+            const w = cTime.width;
+            const h = cTime.height;
+            const centerY = h / 2;
+            
+            // Axes
+            ctxTime.beginPath();
+            ctxTime.moveTo(0, centerY);
+            ctxTime.lineTo(w, centerY);
+            ctxTime.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctxTime.lineWidth = 1;
+            ctxTime.stroke();
+            
+            // Plot x(t)
+            ctxTime.beginPath();
+            const timeWindow = 10; // seconds to show
+            const latestT = history[history.length - 1].t;
+            const scaleX = w / timeWindow;
+            const scaleY = h / 12; // +/- 6 units range
+            
+            for (let i = 0; i < history.length; i++) {
+                const pt = history[i];
+                const px = w - (latestT - pt.t) * scaleX; 
+                const py = centerY - pt.x * scaleY;
+                
+                if (i === 0) ctxTime.moveTo(px, py);
+                else ctxTime.lineTo(px, py);
+            }
+            
+            ctxTime.strokeStyle = 'var(--accent-main)';
+            ctxTime.lineWidth = 2;
+            ctxTime.stroke();
+        }
+
+        function drawPhasePortrait() {
+            ctxPhase.clearRect(0, 0, cPhase.width, cPhase.height);
+            if (history.length === 0) return;
+            
+            const w = cPhase.width;
+            const h = cPhase.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            
+            // Axes
+            ctxPhase.beginPath();
+            ctxPhase.moveTo(0, cy);
+            ctxPhase.lineTo(w, cy); // x-axis
+            ctxPhase.moveTo(cx, 0);
+            ctxPhase.lineTo(cx, h); // y-axis
+            ctxPhase.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctxPhase.lineWidth = 1;
+            ctxPhase.stroke();
+            
+            // Scale
+            const scale = Math.min(w, h) / 15; // units map to this many pixels
+            
+            // Plot v vs x
+            ctxPhase.beginPath();
+            for (let i = 0; i < history.length; i++) {
+                const pt = history[i];
+                const px = cx + pt.x * scale;
+                const py = cy - pt.v * scale; // invert y for canvas
+                
+                if (i === 0) ctxPhase.moveTo(px, py);
+                else ctxPhase.lineTo(px, py);
+            }
+            
+            const grad = ctxPhase.createLinearGradient(0,0,w,h);
+            grad.addColorStop(0, "rgba(192, 132, 252, 0.4)");
+            grad.addColorStop(1, "rgba(56, 189, 248, 1)");
+            
+            ctxPhase.strokeStyle = grad;
+            ctxPhase.lineWidth = 2;
+            ctxPhase.stroke();
+            
+            // Draw current point
+            const last = history[history.length - 1];
+            ctxPhase.beginPath();
+            ctxPhase.arc(cx + last.x * scale, cy - last.v * scale, 5, 0, Math.PI*2);
+            ctxPhase.fillStyle = 'white';
+            ctxPhase.fill();
+        }
+
+        function drawAll() {
+            drawMainAnimation();
+            drawTimeGraph();
+            drawPhasePortrait();
+        }
+
+        // Animation Loop
+        function loop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dtRaw = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            
+            if (isPlaying) {
+                // To keep accuracy up for fast springs, step multiple small times per frame
+                const subSteps = 5;
+                const dt = dtRaw / subSteps;
+                for(let i=0; i<subSteps; i++) {
+                    stepRK4(dt);
+                }
+            }
+            
+            drawAll();
+            requestAnimationFrame(loop);
+        }
+
+        // Start
+        requestAnimationFrame(loop);
+
+    </script>
+</body>
+</html>

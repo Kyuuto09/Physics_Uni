@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Superposition</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #f8fafc;
+            --accent-main: #38bdf8;
+            --accent-secondary: #c084fc;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: var(--accent-main);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin: 0 0 10px 0;
+            color: var(--accent-secondary);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent-main);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1 1 45%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: var(--accent-main);
+            color: #0f172a;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        button.secondary {
+            background: var(--accent-secondary);
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--panel-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        /* The canvas is scaled up so that calculating per-pixel is faster */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated; /* Keeps it sharp or fast depending on browser */
+        }
+        
+        .overlay-instruction {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            pointer-events: none;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <div class="glass-panel">
+                <h1>Wave Superposition</h1>
+                
+                <div class="control-group">
+                    <label>
+                        Wavenumber (k) <span id="val-k">2.0</span>
+                    </label>
+                    <input type="range" id="input-k" min="0.5" max="10" step="0.1" value="2.0">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Angular Freq (ω) <span id="val-w">5.0</span>
+                    </label>
+                    <input type="range" id="input-w" min="0" max="20" step="0.5" value="5.0">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Amplitude Decay (α) <span id="val-alpha">0.5</span>
+                    </label>
+                    <input type="range" id="input-alpha" min="0" max="2" step="0.1" value="0.5">
+                </div>
+                
+                <div class="control-group">
+                    <label>
+                        Resolution <span id="val-res">High</span>
+                    </label>
+                    <input type="range" id="input-res" min="1" max="3" step="1" value="2">
+                </div>
+
+                <div class="button-group">
+                    <button id="btn-add">Add Source</button>
+                    <button id="btn-clear" class="secondary">Clear Sources</button>
+                    <button id="btn-play">Pause</button>
+                </div>
+            </div>
+            <div class="glass-panel" style="flex:1;">
+                <h2>About the Math</h2>
+                <div style="font-size: 0.9em; line-height: 1.5; color: #cbd5e1;">
+                    <p><strong>Wave Equation:</strong> <br>u(r,t) = (A / |r-r₀|^α) * sin(k|r-r₀| - ωt)</p>
+                    <p>The total wave height at any pixel is the <strong>sum</strong> of all active emitters (Superposition).</p>
+                    <p>Click anywhere on the screen to manually place an emitter!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Animation -->
+        <div class="main-content" id="main-content">
+            <canvas id="animCanvas"></canvas>
+            <div class="overlay-instruction">Click on screen to place a wave source</div>
+        </div>
+    </div>
+
+    <script>
+        // Parameters
+        let params = { k: 2.0, w: 5.0, alpha: 0.5, A: 10.0 };
+        let resolutionScale = 2; // 1 = Low (fast), 2 = Med, 3 = High
+        
+        let sources = [
+            { x: 0.3, y: 0.5 },
+            { x: 0.7, y: 0.5 }
+        ]; // Coordinates normalized [0.0 - 1.0]
+        
+        let isPlaying = true;
+        let time = 0;
+        let lastTime = 0;
+        
+        // DOM Elements
+        const DOM = {
+            k: document.getElementById('input-k'),
+            w: document.getElementById('input-w'),
+            alpha: document.getElementById('input-alpha'),
+            res: document.getElementById('input-res'),
+            valK: document.getElementById('val-k'),
+            valW: document.getElementById('val-w'),
+            valAlpha: document.getElementById('val-alpha'),
+            valRes: document.getElementById('val-res'),
+            btnAdd: document.getElementById('btn-add'),
+            btnClear: document.getElementById('btn-clear'),
+            btnPlay: document.getElementById('btn-play'),
+        };
+
+        const canvas = document.getElementById('animCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        let imageData;
+        let pBuf; // Uint32Array buffer for fast pixel manipulation
+
+        function initCanvasSize() {
+            const rect = document.getElementById('main-content').getBoundingClientRect();
+            // Scale down resolution to maintain 60 FPS calculation
+            const scales = [10, 5, 2]; // Divisors for width/height
+            const div = scales[resolutionScale - 1];
+            
+            canvas.width = Math.floor(rect.width / div);
+            canvas.height = Math.floor(rect.height / div);
+            
+            imageData = ctx.createImageData(canvas.width, canvas.height);
+            pBuf = new Uint32Array(imageData.data.buffer);
+        }
+        
+        window.addEventListener('resize', initCanvasSize);
+
+        // UI Event Listeners
+        function updateParams() {
+            params.k = parseFloat(DOM.k.value);
+            params.w = parseFloat(DOM.w.value);
+            params.alpha = parseFloat(DOM.alpha.value);
+            
+            const newRes = parseInt(DOM.res.value);
+            if(newRes !== resolutionScale) {
+                resolutionScale = newRes;
+                initCanvasSize();
+            }
+            
+            DOM.valK.textContent = params.k.toFixed(1);
+            DOM.valW.textContent = params.w.toFixed(1);
+            DOM.valAlpha.textContent = params.alpha.toFixed(1);
+            DOM.valRes.textContent = ["Low", "Med", "High"][resolutionScale - 1];
+        }
+        
+        DOM.k.addEventListener('input', updateParams);
+        DOM.w.addEventListener('input', updateParams);
+        DOM.alpha.addEventListener('input', updateParams);
+        DOM.res.addEventListener('change', updateParams); // Only re-alloc canvas on drag end
+        
+        DOM.btnPlay.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            DOM.btnPlay.textContent = isPlaying ? 'Pause' : 'Play';
+            if (isPlaying) lastTime = performance.now();
+        });
+
+        DOM.btnClear.addEventListener('click', () => {
+            sources = [];
+        });
+        
+        DOM.btnAdd.addEventListener('click', () => {
+            sources.push({ x: Math.random() * 0.8 + 0.1, y: Math.random() * 0.8 + 0.1 });
+        });
+        
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+            sources.push({ x, y });
+        });
+
+        updateParams();
+        setTimeout(initCanvasSize, 50); // initial sizing delay to ensure layout is done
+
+        // Color mapping function from height (-A to +A) to a Color
+        // Returns a full 32-bit integer color ABGR
+        function heightToColor(h, maxH) {
+            // Normalize h to [-1, 1]
+            let norm = h / maxH;
+            if (norm > 1) norm = 1;
+            if (norm < -1) norm = -1;
+            
+            // Map to a gradient:
+            // -1 = Dark Purple / Black
+            // 0 = Dark Blue
+            // +1 = Bright Cyan / White
+            
+            let r=0, g=0, b=0;
+            if (norm < 0) {
+                // Trough: deep blue to black/purple
+                let t = norm + 1; // 0 (trough) to 1 (neutral)
+                r = Math.floor(t * 30);
+                g = Math.floor(t * 60);
+                b = Math.floor(t * 120 + 20);
+            } else {
+                // Peak: deep blue to cyan/white
+                let t = norm; // 0 (neutral) to 1 (peak)
+                r = Math.floor(t * 200 + 30);
+                g = Math.floor(t * 220 + 60);
+                b = Math.floor(t * 255 + 140);
+            }
+            // Add gridlines or emitters as pure white if needed later
+            
+            // ABGR format for Uint32Array (Little Endian)
+            return (255 << 24) | (b << 16) | (g << 8) | r;
+        }
+
+        // Main Render Function
+        function renderWave() {
+            if (!pBuf || canvas.width === 0) return;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Physical aspect ratio mapping
+            const aspect = width / height;
+            
+            // Pre-calculate source pixels
+            const srcPixels = sources.map(s => {
+                return { px: s.x * width, py: s.y * height };
+            });
+
+            const maxAmplitude = params.A * Math.max(1, sources.length * 0.5);
+
+            let idx = 0;
+            for (let y = 0; y < height; y++) {
+                // Physical Y from 0 to 10
+                let physY = (y / height) * 10;
+                
+                for (let x = 0; x < width; x++) {
+                    // Physical X from 0 to 10*aspect
+                    let physX = (x / width) * 10 * aspect;
+                    
+                    let totalU = 0;
+
+                    for (let i = 0; i < sources.length; i++) {
+                        const s = sources[i];
+                        const sPhysX = s.x * 10 * aspect;
+                        const sPhysY = s.y * 10;
+                        
+                        // Distance
+                        const dx = physX - sPhysX;
+                        const dy = physY - sPhysY;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        
+                        // Avoid infinity at singularity
+                        const safeDist = Math.max(dist, 0.1);
+                        
+                        // decay = r^(-alpha)
+                        const decay = Math.pow(safeDist, -params.alpha);
+                        
+                        // wave = A * decay * sin(k*d - w*t)
+                        totalU += params.A * decay * Math.sin(params.k * dist - params.w * time);
+                    }
+                    
+                    // Convert total amplitude 'totalU' to a color and push to buffer
+                    pBuf[idx++] = heightToColor(totalU, maxAmplitude);
+                }
+            }
+            
+            // Draw small white dots for emitter locations
+            for (let i = 0; i < srcPixels.length; i++) {
+                const s = srcPixels[i];
+                let px = Math.floor(s.px);
+                let py = Math.floor(s.py);
+                
+                if (px >= 0 && px < width && py >= 0 && py < height) {
+                    pBuf[py * width + px] = 0xFFFFFFFF; // White dot
+                    // Crosshair slightly
+                    if(px>0) pBuf[py * width + px - 1] = 0xFFFFFFFF;
+                    if(px<width-1) pBuf[py * width + px + 1] = 0xFFFFFFFF;
+                    if(py>0) pBuf[(py-1) * width + px] = 0xFFFFFFFF;
+                    if(py<height-1) pBuf[(py+1) * width + px] = 0xFFFFFFFF;
+                }
+            }
+            
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Animation Loop
+        function loop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            
+            if (isPlaying) {
+                time += dt;
+            }
+            
+            renderWave();
+            requestAnimationFrame(loop);
+        }
+
+        // Start
+        requestAnimationFrame(loop);
+
+    </script>
+</body>
+</html>
