@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ampere's Law: Parallel Wires</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-w1: #3b82f6; /* Blue for Wire 1 */
+            --accent-w2: #f59e0b; /* Amber for Wire 2 */
+            --accent-net: #ef4444; /* Red for Net B Field */
+            --border-color: #334155;
+            --grid-color: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 600px;
+            }
+        }
+
+        .visualization-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .overlay-hint {
+            position: absolute;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            pointer-events: none;
+            border: 1px solid var(--border-color);
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 380px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+        }
+
+        .highlight-net { color: var(--accent-net); }
+        .highlight-w1 { color: var(--accent-w1); }
+        .highlight-w2 { color: var(--accent-w2); }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .equations {
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .equations div {
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-main);
+        }
+
+        .vector-legend {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.75rem;
+            margin-top: 1rem;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="visualization-area">
+        <div class="canvas-container" id="canvasWrap">
+            <canvas id="simCanvas"></canvas>
+            <div class="overlay-hint">Drag anywhere to move the Magnetic Probe</div>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Ampere's Law</h1>
+            <p>Two parallel wires carrying 5A in opposite directions, 10cm apart.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Probe Data</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Position ($x, z$)</span>
+                    <span class="stat-value" id="val-pos">0.0, 0.0 cm</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label highlight-net">Net B-Field ($|\vec{B}_{net}|$)</span>
+                    <span class="stat-value highlight-net" id="val-bnet">40.00 &mu;T</span>
+                </div>
+            </div>
+            
+            <div class="stats-grid" style="margin-top: 0.5rem; border-top: 1px solid #334155; padding-top: 0.5rem;">
+                <div class="stat-item">
+                    <span class="stat-label highlight-w1">$|\vec{B}_1|$ (Left Wire)</span>
+                    <span class="stat-value highlight-w1" id="val-b1">20.00 &mu;T</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label highlight-w2">$|\vec{B}_2|$ (Right Wire)</span>
+                    <span class="stat-value highlight-w2" id="val-b2">20.00 &mu;T</span>
+                </div>
+            </div>
+
+            <div class="vector-legend">
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-w1)"></div> $\vec{B}_1$</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-w2)"></div> $\vec{B}_2$</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-net)"></div> $\vec{B}_{net}$</div>
+            </div>
+
+            <button class="btn" onclick="resetProbe()">Move Probe to Midpoint (0,0)</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Wire Controls</div>
+            
+            <div class="slider-container">
+                <label for="i1Slider">
+                    <span class="highlight-w1">Wire 1 Current ($I_1$) UP</span>
+                    <span id="i1Value">5.0 A</span>
+                </label>
+                <input type="range" id="i1Slider" min="-10" max="10" step="0.5" value="5">
+            </div>
+
+            <div class="slider-container">
+                <label for="i2Slider">
+                    <span class="highlight-w2">Wire 2 Current ($I_2$) DOWN</span>
+                    <span id="i2Value">-5.0 A</span>
+                </label>
+                <input type="range" id="i2Slider" min="-10" max="10" step="0.5" value="-5">
+            </div>
+            
+            <div class="equations">
+                <div style="font-weight: 500;">Ampere's Law for a Straight Wire:</div>
+                <div style="margin-top:0.25rem;">
+                    $B = \frac{\mu_0 I}{2\pi r}$
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">
+                    Notice how at the midpoint ($x=0, z=0$), if the currents are opposite, their magnetic fields constructively interfere and point straight into the $-z$ axis (into the page).
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Physics Constants & State ---
+    const MU_0_OVER_2PI = 2.0e-7; // T*m/A
+    
+    // Wire positions in meters
+    const x1 = -0.05; // -5 cm
+    const x2 = 0.05;  // +5 cm
+    
+    let I1 = 5.0; // Current UP (+y)
+    let I2 = -5.0; // Current DOWN (-y)
+
+    // Probe position in meters (on X-Z plane)
+    let px = 0.0;
+    let pz = 0.0;
+
+    let isDragging = false;
+    let t = 0; // For animating current flowing
+    let animationFrameId = null;
+
+    // --- DOM Elements ---
+    const canvasWrap = document.getElementById('canvasWrap');
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    const i1Slider = document.getElementById('i1Slider');
+    const i2Slider = document.getElementById('i2Slider');
+    const i1Value = document.getElementById('i1Value');
+    const i2Value = document.getElementById('i2Value');
+    
+    const valPos = document.getElementById('val-pos');
+    const valBnet = document.getElementById('val-bnet');
+    const valB1 = document.getElementById('val-b1');
+    const valB2 = document.getElementById('val-b2');
+
+    // --- 3D Isometric Projection Config ---
+    let originX = 0;
+    let originY = 0;
+    let scale = 2000; // pixels per meter (0.05m = 100px)
+    const angle30 = Math.PI / 6;
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        originX = canvas.width / 2;
+        originY = canvas.height / 2 + 50; // shift down slightly
+        
+        // Adjust scale so 20cm (0.2m) fits width
+        scale = Math.min(canvas.width, canvas.height) / 0.2; 
+
+        if(!animationFrameId) draw();
+    }
+
+    // Maps 3D (x,y,z) to 2D screen (sx, sy)
+    // X goes right-down
+    // Z goes left-down
+    // Y goes straight up
+    function toScreen(x, y, z) {
+        const sx = originX + (x - z) * Math.cos(angle30) * scale;
+        const sy = originY + (x + z) * Math.sin(angle30) * scale - y * scale;
+        return {x: sx, y: sy};
+    }
+
+    // Maps 2D screen (sx, sy) to 3D X-Z plane (where y=0)
+    function fromScreenToXZ(sx, sy) {
+        const dx = (sx - originX) / (scale * Math.cos(angle30));
+        const dy = (sy - originY) / (scale * Math.sin(angle30));
+        const x = (dx + dy) / 2;
+        const z = (dy - dx) / 2;
+        return {x, z};
+    }
+
+    function drawArrow(from, to, color, width = 2, headLen = 10) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const angle = Math.atan2(dy, dx);
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - headLen * Math.cos(angle - Math.PI / 6), to.y - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(to.x - headLen * Math.cos(angle + Math.PI / 6), to.y - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(to.x, to.y);
+        ctx.fill();
+    }
+
+    function calculateBField(probeX, probeZ) {
+        // Wire 1: at x1, current I1 along Y axis
+        // r1 vector = (probeX - x1, 0, probeZ)
+        const rx1 = probeX - x1;
+        const rz1 = probeZ;
+        const r1_sq = rx1*rx1 + rz1*rz1;
+        const r1 = Math.sqrt(r1_sq);
+        
+        // Direction from cross product: I1_dir x r1_hat
+        // I1_dir = (0, sign(I1), 0)
+        // (0, sign, 0) x (rx, 0, rz) = (sign*rz, 0, -sign*rx)
+        let B1x = 0, B1z = 0;
+        let magB1 = 0;
+        if (r1 > 0.001) { // prevent singularity
+            magB1 = (MU_0_OVER_2PI * Math.abs(I1)) / r1; // Tesla
+            const sign1 = Math.sign(I1);
+            // normalized direction vector
+            const dirX1 = (sign1 * rz1) / r1;
+            const dirZ1 = (-sign1 * rx1) / r1;
+            B1x = magB1 * dirX1;
+            B1z = magB1 * dirZ1;
+        }
+
+        // Wire 2: at x2, current I2 along Y axis
+        const rx2 = probeX - x2;
+        const rz2 = probeZ;
+        const r2_sq = rx2*rx2 + rz2*rz2;
+        const r2 = Math.sqrt(r2_sq);
+        
+        let B2x = 0, B2z = 0;
+        let magB2 = 0;
+        if (r2 > 0.001) {
+            magB2 = (MU_0_OVER_2PI * Math.abs(I2)) / r2; // Tesla
+            const sign2 = Math.sign(I2);
+            const dirX2 = (sign2 * rz2) / r2;
+            const dirZ2 = (-sign2 * rx2) / r2;
+            B2x = magB2 * dirX2;
+            B2z = magB2 * dirZ2;
+        }
+
+        const Bnet_x = B1x + B2x;
+        const Bnet_z = B1z + B2z;
+        const magBnet = Math.sqrt(Bnet_x*Bnet_x + Bnet_z*Bnet_z);
+
+        return {
+            b1: { x: B1x, z: B1z, mag: magB1 },
+            b2: { x: B2x, z: B2z, mag: magB2 },
+            net: { x: Bnet_x, z: Bnet_z, mag: magBnet }
+        };
+    }
+
+    function draw() {
+        t += 0.05;
+
+        // Clear
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw X-Z Grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        const gridSize = 0.15; // 15cm
+        const step = 0.05; // 5cm
+
+        for (let i = -gridSize; i <= gridSize + 0.01; i += step) {
+            const pt1 = toScreen(i, 0, -gridSize);
+            const pt2 = toScreen(i, 0, gridSize);
+            ctx.beginPath(); ctx.moveTo(pt1.x, pt1.y); ctx.lineTo(pt2.x, pt2.y); ctx.stroke();
+            
+            const pt3 = toScreen(-gridSize, 0, i);
+            const pt4 = toScreen(gridSize, 0, i);
+            ctx.beginPath(); ctx.moveTo(pt3.x, pt3.y); ctx.lineTo(pt4.x, pt4.y); ctx.stroke();
+        }
+
+        // Axis labels
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '10px Inter';
+        let xl = toScreen(gridSize + 0.02, 0, 0); ctx.fillText("+X", xl.x, xl.y);
+        let zl = toScreen(0, 0, gridSize + 0.02); ctx.fillText("+Z (Out of Page)", zl.x, zl.y);
+
+        // Draw Wires
+        const wireHeight = 0.2; // 20cm
+        
+        // Wire 1
+        const w1Start = toScreen(x1, -wireHeight/2, 0);
+        const w1End = toScreen(x1, wireHeight/2, 0);
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)'; // Blue
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(w1Start.x, w1Start.y); ctx.lineTo(w1End.x, w1End.y); ctx.stroke();
+        
+        // Wire 2
+        const w2Start = toScreen(x2, -wireHeight/2, 0);
+        const w2End = toScreen(x2, wireHeight/2, 0);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.8)'; // Amber
+        ctx.beginPath(); ctx.moveTo(w2Start.x, w2Start.y); ctx.lineTo(w2End.x, w2End.y); ctx.stroke();
+
+        // Animate Current
+        function drawCurrent(wireX, currentMag, color) {
+            if (currentMag === 0) return;
+            const sign = Math.sign(currentMag);
+            const numArrows = 4;
+            for (let i = 0; i < numArrows; i++) {
+                // Phase goes 0 to 1
+                let phase = (t * Math.abs(currentMag)/5 + i / numArrows) % 1.0;
+                // Map phase to y position (-H/2 to H/2)
+                let y = -wireHeight/2 + phase * wireHeight;
+                if (sign < 0) y = wireHeight/2 - phase * wireHeight; // reverse flow
+                
+                const c1 = toScreen(wireX, y - sign*0.01, 0);
+                const c2 = toScreen(wireX, y + sign*0.01, 0);
+                drawArrow(c1, c2, color, 2, 6);
+            }
+        }
+        drawCurrent(x1, I1, '#93c5fd');
+        drawCurrent(x2, I2, '#fcd34d');
+
+        // Field calculation at probe
+        const fields = calculateBField(px, pz);
+
+        // Draw Probe and Vectors
+        const sProbe = toScreen(px, 0, pz);
+        
+        // Draw dashed line from origin to show location in plane
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(toScreen(px, 0, 0).x, toScreen(px, 0, 0).y);
+        ctx.lineTo(sProbe.x, sProbe.y);
+        ctx.moveTo(toScreen(0, 0, pz).x, toScreen(0, 0, pz).y);
+        ctx.lineTo(sProbe.x, sProbe.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Vectors
+        // We scale vectors visually. 40 uT = 0.05 length in our 3D space
+        const vScale = 0.05 / 40.0e-6; 
+
+        // Draw B1
+        if (fields.b1.mag > 1e-8) {
+            const b1End = toScreen(px + fields.b1.x * vScale, 0, pz + fields.b1.z * vScale);
+            drawArrow(sProbe, b1End, '#3b82f6', 2, 6);
+        }
+        
+        // Draw B2
+        if (fields.b2.mag > 1e-8) {
+            const b2End = toScreen(px + fields.b2.x * vScale, 0, pz + fields.b2.z * vScale);
+            drawArrow(sProbe, b2End, '#f59e0b', 2, 6);
+        }
+
+        // Draw B_net
+        if (fields.net.mag > 1e-8) {
+            const bnetEnd = toScreen(px + fields.net.x * vScale, 0, pz + fields.net.z * vScale);
+            drawArrow(sProbe, bnetEnd, '#ef4444', 3, 10);
+        }
+
+        // Draw Probe Dot
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(sProbe.x, sProbe.y, 6, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Update DOM stats
+        updateDOM(fields);
+
+        animationFrameId = requestAnimationFrame(draw);
+    }
+
+    function updateDOM(fields) {
+        valPos.textContent = `${(px*100).toFixed(1)}, ${(pz*100).toFixed(1)} cm`;
+        valBnet.textContent = `${(fields.net.mag * 1e6).toFixed(2)} \u03BCT`;
+        valB1.textContent = `${(fields.b1.mag * 1e6).toFixed(2)} \u03BCT`;
+        valB2.textContent = `${(fields.b2.mag * 1e6).toFixed(2)} \u03BCT`;
+    }
+
+    // --- Interactivity ---
+    
+    // Mouse dragging
+    canvasWrap.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        updateProbePos(e);
+    });
+    
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            updateProbePos(e);
+        }
+    });
+
+    function updateProbePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = e.clientX - rect.left;
+        const sy = e.clientY - rect.top;
+        
+        const pos3D = fromScreenToXZ(sx, sy);
+        
+        // Clamp to grid
+        px = Math.max(-0.15, Math.min(0.15, pos3D.x));
+        pz = Math.max(-0.15, Math.min(0.15, pos3D.z));
+    }
+
+    // Sliders
+    i1Slider.addEventListener('input', (e) => {
+        I1 = parseFloat(e.target.value);
+        i1Value.textContent = `${I1.toFixed(1)} A`;
+    });
+
+    i2Slider.addEventListener('input', (e) => {
+        I2 = parseFloat(e.target.value);
+        i2Value.textContent = `${I2.toFixed(1)} A`;
+    });
+
+    window.resetProbe = function() {
+        px = 0.0;
+        pz = 0.0;
+    };
+
+    // --- Init ---
+    window.addEventListener('load', () => {
+        resizeCanvas();
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>

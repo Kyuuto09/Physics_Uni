@@ -54,3 +54,4 @@ $$F_L = 10^{-13} \text{ N}$$
 ### 3. Final Answers
 
 - **Magnitude of Lorentz Force ($F_L$):** precisely $1.0 \times 10^{-13} \text{ N}$.
+

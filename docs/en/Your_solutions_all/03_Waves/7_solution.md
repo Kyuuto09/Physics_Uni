@@ -39,3 +39,6 @@ _(If you need standard SI units, this is $0.4\text{ meters}$.)_
 ### 3. Final Answer
 
 - **Wavelength ($\lambda$):** $40\text{ cm}$ (or $0.4\text{ m}$)
+
+
+![[Pasted image 20260421170540.png]]

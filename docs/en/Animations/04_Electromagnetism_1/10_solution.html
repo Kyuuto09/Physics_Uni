@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorentz Force on a Wire</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-b: #3b82f6; /* Blue for B Field */
+            --accent-i: #f59e0b; /* Amber for Current */
+            --accent-f: #ef4444; /* Red for Force */
+            --border-color: #334155;
+            --grid-color: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 600px;
+            }
+        }
+
+        .visualization-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 380px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+        }
+
+        .equations {
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .equations div {
+            margin-bottom: 0.5rem;
+        }
+
+        .highlight-b { color: var(--accent-b); font-weight: 600; }
+        .highlight-i { color: var(--accent-i); font-weight: 600; }
+        .highlight-f { color: var(--accent-f); font-weight: 600; }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .presets {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .preset-btn {
+            flex: 1;
+            padding: 0.4rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-main);
+        }
+
+        .force-bar-container {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .force-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #b91c1c, #ef4444);
+            border-radius: 10px;
+            transition: width 0.1s linear;
+        }
+
+        .cross-product-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="visualization-area">
+        <div class="canvas-container">
+            <canvas id="simCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Lorentz Force on a Wire</h1>
+            <p>A 2.0 m wire carrying 10 A in a 0.5 T magnetic field.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Data</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Angle ($\theta$)</span>
+                    <span class="stat-value" id="val-angle">90&deg;</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Force ($F$)</span>
+                    <span class="stat-value highlight-f" id="val-force">10.00 N</span>
+                </div>
+            </div>
+
+            <div class="force-bar-container">
+                <div class="force-bar-fill" id="force-bar"></div>
+            </div>
+            <div class="cross-product-hint">Magnitude of Magnetic Force</div>
+
+            <div class="equations">
+                <div>Current $I = 10 \text{ A}$</div>
+                <div>Length $L = 2.0 \text{ m}$</div>
+                <div>Field $B = 0.5 \text{ T}$</div>
+            </div>
+            <div class="equations" style="padding-top:0.5rem; margin-top:0.5rem;">
+                <div style="font-weight: 500;">Cross Product Formula:</div>
+                <div class="highlight-f" style="margin-top:0.25rem;">
+                    $F = I \cdot L \cdot B \cdot \sin(\theta)$
+                </div>
+                <div style="margin-top:0.5rem;">
+                    $F = 10 \cdot 2.0 \cdot 0.5 \cdot \sin($<span id="eq-angle" style="font-variant-numeric: tabular-nums;">90</span>$^\circ)$
+                </div>
+                <div>
+                    $F =$ <span id="eq-force" class="highlight-f" style="font-variant-numeric: tabular-nums; font-size: 1.1rem;">10.00</span> N
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="slider-container">
+                <label for="angleSlider">
+                    <span>Angle between Wire and B-Field</span>
+                    <span id="angleValue">90&deg;</span>
+                </label>
+                <input type="range" id="angleSlider" min="0" max="360" step="1" value="90">
+            </div>
+
+            <div class="presets">
+                <button class="preset-btn" onclick="setAngle(0)">0&deg; (Parallel)</button>
+                <button class="preset-btn" onclick="setAngle(45)">45&deg;</button>
+                <button class="preset-btn" onclick="setAngle(90)">90&deg; (Max)</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Physics Constants ---
+    const I = 10.0;    // A
+    const L = 2.0;     // m
+    const B_mag = 0.5; // T
+    const F_MAX = I * L * B_mag; // 10 N
+
+    // --- State ---
+    let thetaDeg = 90;
+    let t = 0; // For animating current flowing
+    let animationFrameId = null;
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    const angleSlider = document.getElementById('angleSlider');
+    const angleValue = document.getElementById('angleValue');
+    
+    const valAngle = document.getElementById('val-angle');
+    const valForce = document.getElementById('val-force');
+    const forceBar = document.getElementById('force-bar');
+    
+    const eqAngle = document.getElementById('eq-angle');
+    const eqForce = document.getElementById('eq-force');
+
+    // --- 3D Projection Config ---
+    let originX = 0;
+    let originY = 0;
+    let scale = 100; // pixels per meter
+    const angle30 = Math.PI / 6; // Isometric angle
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        originX = canvas.width / 2;
+        originY = canvas.height / 2;
+        scale = Math.min(canvas.width, canvas.height) / 5; // Fit a 2m object
+
+        draw();
+    }
+
+    // Maps 3D coordinates to 2D isometric screen coordinates
+    // X axis goes Right-Down
+    // Z axis goes Right-Up
+    // Y axis goes Straight Up (negative screen Y)
+    function toScreen(x, y, z) {
+        const sx = originX + (x + z) * Math.cos(angle30) * scale;
+        const sy = originY + (x - z) * Math.sin(angle30) * scale - y * scale;
+        return {x: sx, y: sy};
+    }
+
+    // Depth sorting helper for correct draw order
+    function getDepth(x, y, z) {
+        return (x - z); // Higher value means closer to camera
+    }
+
+    function drawArrow(from, to, color, width = 2, headLen = 10) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const angle = Math.atan2(dy, dx);
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - headLen * Math.cos(angle - Math.PI / 6), to.y - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(to.x - headLen * Math.cos(angle + Math.PI / 6), to.y - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(to.x, to.y);
+        ctx.fill();
+    }
+
+    function draw() {
+        t += 0.05; // Advance animation time
+
+        // Clear background
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Math prep
+        const rad = thetaDeg * Math.PI / 180;
+        const f_mag = I * L * B_mag * Math.sin(rad);
+        
+        // Draw Grid in X-Z plane (y=0)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        const gridSize = 3; // meters
+        
+        for (let i = -gridSize; i <= gridSize; i++) {
+            const pt1 = toScreen(i, 0, -gridSize);
+            const pt2 = toScreen(i, 0, gridSize);
+            ctx.beginPath(); ctx.moveTo(pt1.x, pt1.y); ctx.lineTo(pt2.x, pt2.y); ctx.stroke();
+            
+            const pt3 = toScreen(-gridSize, 0, i);
+            const pt4 = toScreen(gridSize, 0, i);
+            ctx.beginPath(); ctx.moveTo(pt3.x, pt3.y); ctx.lineTo(pt4.x, pt4.y); ctx.stroke();
+        }
+
+        // Draw Axes faintly
+        const o = toScreen(0,0,0);
+        drawArrow(o, toScreen(gridSize, 0, 0), 'rgba(255,255,255,0.2)', 1, 5); // X
+        drawArrow(o, toScreen(0, gridSize, 0), 'rgba(255,255,255,0.2)', 1, 5); // Y
+        drawArrow(o, toScreen(0, 0, gridSize), 'rgba(255,255,255,0.2)', 1, 5); // Z
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '10px Inter';
+        let xl = toScreen(gridSize + 0.2, 0, 0); ctx.fillText("X", xl.x, xl.y);
+        let yl = toScreen(0, gridSize + 0.2, 0); ctx.fillText("Y", yl.x, yl.y);
+        let zl = toScreen(0, 0, gridSize + 0.2); ctx.fillText("Z", zl.x, zl.y);
+
+        // Draw Magnetic Field (B along X axis)
+        const bColor = '#3b82f6'; // Blue
+        for (let z = -2; z <= 2; z += 1) {
+            for (let y_b = -1; y_b <= 1; y_b += 1) {
+                // Don't draw too many to avoid clutter
+                if (Math.abs(z) > 1 && y_b !== 0) continue; 
+                
+                const bStart = toScreen(-gridSize + 1, y_b, z);
+                const bEnd = toScreen(gridSize - 1, y_b, z);
+                
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(bStart.x, bStart.y);
+                ctx.lineTo(bEnd.x, bEnd.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Add arrow heads along the line
+                drawArrow(toScreen(gridSize - 2, y_b, z), toScreen(gridSize - 1, y_b, z), 'rgba(59, 130, 246, 0.6)', 2, 8);
+            }
+        }
+        
+        // Draw B Field Label
+        const bLabelPt = toScreen(gridSize - 0.5, 1.2, 0);
+        ctx.fillStyle = bColor;
+        ctx.font = 'bold 14px Inter';
+        ctx.fillText("B Field", bLabelPt.x, bLabelPt.y);
+
+        // Draw Wire in X-Z plane at angle theta
+        // Wire direction vector is (cos(theta), 0, sin(theta))
+        // Length L = 2
+        const wStart3D = { x: -L/2 * Math.cos(rad), y: 0, z: -L/2 * Math.sin(rad) };
+        const wEnd3D   = { x:  L/2 * Math.cos(rad), y: 0, z:  L/2 * Math.sin(rad) };
+        
+        const sWStart = toScreen(wStart3D.x, wStart3D.y, wStart3D.z);
+        const sWEnd   = toScreen(wEnd3D.x, wEnd3D.y, wEnd3D.z);
+
+        ctx.strokeStyle = '#94a3b8'; // Wire gray
+        ctx.lineCap = 'round';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(sWStart.x, sWStart.y);
+        ctx.lineTo(sWEnd.x, sWEnd.y);
+        ctx.stroke();
+
+        // Animate current flowing
+        const curColor = '#f59e0b'; // Amber
+        const numArrows = 3;
+        for (let i = 0; i < numArrows; i++) {
+            const phase = (t + i / numArrows) % 1.0; // 0 to 1
+            // Interpolate position
+            const curX = wStart3D.x + (wEnd3D.x - wStart3D.x) * phase;
+            const curZ = wStart3D.z + (wEnd3D.z - wStart3D.z) * phase;
+            
+            const curPos1 = toScreen(curX, 0, curZ);
+            const curPos2 = toScreen(curX + 0.2 * Math.cos(rad), 0, curZ + 0.2 * Math.sin(rad));
+            
+            drawArrow(curPos1, curPos2, curColor, 3, 6);
+        }
+
+        // Draw Current Label
+        const iLabelPt = toScreen(wEnd3D.x + 0.3 * Math.cos(rad), 0, wEnd3D.z + 0.3 * Math.sin(rad));
+        ctx.fillStyle = curColor;
+        ctx.fillText("Current (I)", iLabelPt.x, iLabelPt.y);
+
+        // Draw Force Vector (F)
+        // Cross product: I x B. 
+        // I = (cos, 0, sin), B = (1, 0, 0)
+        // I x B = (0, sin, 0)  Wait: (0*0 - sin*0, sin*1 - cos*0, cos*0 - 0*1) = (0, sin, 0)
+        // But force is negative if current is negative angle?
+        // Let's use exact vector cross product:
+        // F = I x B. 
+        // I is in direction (cos, 0, sin).
+        // B is in direction (1, 0, 0).
+        // (Iy*Bz - Iz*By, Iz*Bx - Ix*Bz, Ix*By - Iy*Bx)
+        // (0*0 - sin*0, sin*1 - cos*0, cos*0 - 0*1)
+        // = (0, sin(theta), 0)
+        // F is along Y axis! Magnitude proportional to sin(theta).
+        
+        if (Math.abs(f_mag) > 0.1) {
+            const fColor = '#ef4444'; // Red
+            const fVecLength = f_mag / F_MAX * 2.0; // Visual scale, max 2m
+            
+            // Draw from center of wire
+            const fStart = toScreen(0, 0, 0);
+            const fEnd = toScreen(0, fVecLength, 0);
+            
+            // Make the force arrow thicker and very prominent
+            drawArrow(fStart, fEnd, fColor, 4, 12);
+            
+            // Draw Force Label
+            const fLabelPt = toScreen(0, fVecLength + 0.3 * Math.sign(fVecLength), 0);
+            ctx.fillStyle = fColor;
+            ctx.fillText(`F = ${Math.abs(f_mag).toFixed(1)} N`, fLabelPt.x, fLabelPt.y);
+        }
+
+        // --- DOM Updates ---
+        updateDOM(f_mag);
+
+        animationFrameId = requestAnimationFrame(draw);
+    }
+
+    function updateDOM(f_mag) {
+        valAngle.innerHTML = `${thetaDeg}&deg;`;
+        valForce.textContent = `${Math.abs(f_mag).toFixed(2)} N`;
+        
+        eqAngle.textContent = thetaDeg;
+        eqForce.textContent = Math.abs(f_mag).toFixed(2);
+
+        // Update bar width
+        const pct = (Math.abs(f_mag) / F_MAX) * 100;
+        forceBar.style.width = `${pct}%`;
+    }
+
+    window.setAngle = function(angle) {
+        angleSlider.value = angle;
+        thetaDeg = angle;
+        angleValue.innerHTML = `${angle}&deg;`;
+    }
+
+    // --- Events ---
+    angleSlider.addEventListener('input', (e) => {
+        thetaDeg = parseInt(e.target.value);
+        angleValue.innerHTML = `${thetaDeg}&deg;`;
+    });
+
+    window.addEventListener('load', () => {
+        resizeCanvas();
+        draw(); // starts loop
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>
