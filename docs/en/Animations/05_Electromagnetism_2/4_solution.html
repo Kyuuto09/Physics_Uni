@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnetic Torque on a Loop</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-b: #3b82f6; /* Blue for B Field */
+            --accent-n: #f59e0b; /* Amber for Normal/Dipole */
+            --accent-t: #ef4444; /* Red for Torque */
+            --border-color: #334155;
+            --grid-color: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                flex-direction: row;
+                height: 80vh;
+                min-height: 600px;
+            }
+        }
+
+        .visualization-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel {
+                width: 380px;
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--text-main);
+        }
+
+        .highlight-b { color: var(--accent-b); }
+        .highlight-n { color: var(--accent-n); }
+        .highlight-t { color: var(--accent-t); }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #60a5fa;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .equations {
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .vector-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            font-size: 0.75rem;
+            margin-top: 1rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .presets {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .preset-btn {
+            flex: 1;
+            padding: 0.4rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-main);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 60px;
+            margin-top: 1rem;
+            border-left: 1px solid #334155;
+            border-bottom: 1px solid #334155;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 2px;
+        }
+        .chart-bar {
+            width: 100%;
+            background: var(--accent-t);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.1s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="visualization-area">
+        <div class="canvas-container" id="canvasWrap">
+            <canvas id="simCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Magnetic Torque</h1>
+            <p>10x5cm loop (2A) in a 0.3T uniform magnetic field.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Physics Data</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Rotation Angle ($\theta$)</span>
+                    <span class="stat-value" id="val-angle">90&deg;</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label highlight-t">Torque ($|\vec{\tau}|$)</span>
+                    <span class="stat-value highlight-t" id="val-torque">3.00 mN&middot;m</span>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-bar" id="torqueBar" style="height: 100%;"></div>
+            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 0.25rem;">Torque Magnitude Chart</div>
+
+            <div class="vector-legend">
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-b)"></div> $\vec{B}$ (Field)</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-n)"></div> $\vec{n}$ (Normal/Dipole)</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-t)"></div> $\vec{\tau}$ (Torque)</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="slider-container">
+                <label for="angleSlider">
+                    <span>Angle between Normal and B-Field</span>
+                    <span id="angleValue">90&deg;</span>
+                </label>
+                <input type="range" id="angleSlider" min="0" max="360" step="1" value="90">
+            </div>
+
+            <div class="presets">
+                <button class="preset-btn" onclick="setAngle(0)">0&deg; (Stable)</button>
+                <button class="preset-btn" onclick="setAngle(90)">90&deg; (Max Tq)</button>
+                <button class="preset-btn" onclick="setAngle(180)">180&deg; (Unstable)</button>
+            </div>
+            
+            <div class="equations">
+                <div style="font-weight: 500;">Magnetic Torque Formula:</div>
+                <div style="margin-top:0.25rem;" class="highlight-t">
+                    $\tau = I \cdot A \cdot B \cdot \sin(\theta)$
+                </div>
+                <div style="margin-top:0.5rem;">
+                    $\tau = 2 \cdot (0.005) \cdot 0.3 \cdot \sin($<span id="eq-angle">90</span>$^\circ)$
+                </div>
+                <div style="margin-top:0.25rem; font-weight: 600;" class="highlight-t">
+                    $\tau = $<span id="eq-torque">0.003</span> $\text{ N}\cdot\text{m}$
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Physics constants
+    const I = 2.0;       // Amps
+    const width = 0.10;  // 10 cm
+    const height = 0.05; // 5 cm
+    const Area = width * height; // 0.005 m^2
+    const B_mag = 0.3;   // T
+    const Tau_max = I * Area * B_mag; // 0.003 N*m = 3 mN*m
+
+    // State
+    let thetaDeg = 90;
+    let t = 0; // Animation time for current
+    let animationFrameId = null;
+
+    // DOM Elements
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    const angleSlider = document.getElementById('angleSlider');
+    const angleValue = document.getElementById('angleValue');
+    
+    const valAngle = document.getElementById('val-angle');
+    const valTorque = document.getElementById('val-torque');
+    const torqueBar = document.getElementById('torqueBar');
+    
+    const eqAngle = document.getElementById('eq-angle');
+    const eqTorque = document.getElementById('eq-torque');
+
+    // Isometric Projection Setup
+    let originX = 0;
+    let originY = 0;
+    let scale = 2500; // pixels per meter. Loop is 0.1m, so 250px on screen
+    const angle30 = Math.PI / 6;
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        originX = canvas.width / 2;
+        originY = canvas.height / 2;
+        
+        scale = Math.min(canvas.width, canvas.height) / 0.15; // Fit 0.15m bounding box
+
+        if(!animationFrameId) draw();
+    }
+
+    // Maps 3D (x,y,z) to 2D screen (sx, sy)
+    // X goes right-down (B-field direction)
+    // Z goes left-down
+    // Y goes straight up (Torque direction)
+    function toScreen(x, y, z) {
+        const sx = originX + (x - z) * Math.cos(angle30) * scale;
+        const sy = originY + (x + z) * Math.sin(angle30) * scale - y * scale;
+        return {x: sx, y: sy};
+    }
+
+    // Helper to sort 3D points by depth for drawing
+    function depthSort(points) {
+        // Depth in this isometric projection is roughly (x + z)
+        return points.sort((a, b) => (b.x + b.z) - (a.x + a.z));
+    }
+
+    function drawArrow(from, to, color, width = 2, headLen = 10) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const angle = Math.atan2(dy, dx);
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - headLen * Math.cos(angle - Math.PI / 6), to.y - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(to.x - headLen * Math.cos(angle + Math.PI / 6), to.y - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(to.x, to.y);
+        ctx.fill();
+    }
+
+    function draw() {
+        t += 0.05;
+        const thetaRad = thetaDeg * Math.PI / 180;
+
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // --- Draw Background B-Field ---
+        // B-field is uniform along X-axis
+        const bColor = 'rgba(59, 130, 246, 0.4)';
+        for (let z = -0.1; z <= 0.1; z += 0.05) {
+            for (let y = -0.05; y <= 0.05; y += 0.05) {
+                // Faint dashed lines
+                const p1 = toScreen(-0.15, y, z);
+                const p2 = toScreen(0.15, y, z);
+                ctx.strokeStyle = bColor;
+                ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                ctx.setLineDash([]);
+                // Small arrowheads
+                const pa1 = toScreen(0.1, y, z);
+                const pa2 = toScreen(0.15, y, z);
+                drawArrow(pa1, pa2, bColor, 1, 6);
+            }
+        }
+
+        // --- Calculate Loop Corners ---
+        // Normal vector lies in X-Z plane: n = (cos(t), 0, sin(t))
+        // The loop is in the plane perpendicular to n and rotates around Y axis
+        // local x-axis = (-sin(t), 0, cos(t)) -> corresponds to width w
+        // local y-axis = (0, 1, 0) -> corresponds to height h
+        const hW = width / 2;
+        const hH = height / 2;
+        
+        const localX = { x: -Math.sin(thetaRad), y: 0, z: Math.cos(thetaRad) };
+        const localY = { x: 0, y: 1, z: 0 };
+
+        const p1 = { x:  localX.x*hW + localY.x*hH, y:  localX.y*hW + localY.y*hH, z:  localX.z*hW + localY.z*hH };
+        const p2 = { x:  localX.x*hW - localY.x*hH, y:  localX.y*hW - localY.y*hH, z:  localX.z*hW - localY.z*hH };
+        const p3 = { x: -localX.x*hW - localY.x*hH, y: -localX.y*hW - localY.y*hH, z: -localX.z*hW - localY.z*hH };
+        const p4 = { x: -localX.x*hW + localY.x*hH, y: -localX.y*hW + localY.y*hH, z: -localX.z*hW + localY.z*hH };
+
+        const sp1 = toScreen(p1.x, p1.y, p1.z);
+        const sp2 = toScreen(p2.x, p2.y, p2.z);
+        const sp3 = toScreen(p3.x, p3.y, p3.z);
+        const sp4 = toScreen(p4.x, p4.y, p4.z);
+
+        // --- Draw Loop Face (Fill) ---
+        // We calculate normal to determine if front-facing or back-facing
+        // Normal n = (cos, 0, sin). B is (1, 0, 0).
+        // Since we want to color the 'front' face.
+        ctx.beginPath();
+        ctx.moveTo(sp1.x, sp1.y);
+        ctx.lineTo(sp2.x, sp2.y);
+        ctx.lineTo(sp3.x, sp3.y);
+        ctx.lineTo(sp4.x, sp4.y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.15)'; // faint amber face
+        ctx.fill();
+
+        // --- Draw Loop Edges ---
+        ctx.strokeStyle = '#f59e0b'; // Amber
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // --- Animate Current Arrows ---
+        function drawEdgeCurrent(startP, endP, phaseOffset) {
+            const numArrows = 2;
+            for(let i=0; i<numArrows; i++) {
+                let phase = (t + i/numArrows + phaseOffset) % 1.0;
+                let curX = startP.x + (endP.x - startP.x) * phase;
+                let curY = startP.y + (endP.y - startP.y) * phase;
+                let curZ = startP.z + (endP.z - startP.z) * phase;
+                
+                let curX2 = startP.x + (endP.x - startP.x) * (phase + 0.05);
+                let curY2 = startP.y + (endP.y - startP.y) * (phase + 0.05);
+                let curZ2 = startP.z + (endP.z - startP.z) * (phase + 0.05);
+
+                drawArrow(toScreen(curX, curY, curZ), toScreen(curX2, curY2, curZ2), '#fcd34d', 2, 6);
+            }
+        }
+        drawEdgeCurrent(p1, p2, 0);
+        drawEdgeCurrent(p2, p3, 0.25);
+        drawEdgeCurrent(p3, p4, 0.5);
+        drawEdgeCurrent(p4, p1, 0.75);
+
+        // --- Draw Normal Vector (\vec{n}) ---
+        const nColor = '#f59e0b'; // Amber
+        const nLength = 0.06; // physical length visualization
+        const nEnd = {
+            x: Math.cos(thetaRad) * nLength,
+            y: 0,
+            z: Math.sin(thetaRad) * nLength
+        };
+        drawArrow(toScreen(0,0,0), toScreen(nEnd.x, nEnd.y, nEnd.z), nColor, 3, 8);
+
+        // --- Draw Torque Vector (\vec{\tau}) ---
+        // tau = (0, IAB * sin(theta), 0)
+        // Magnitude varies by sin(theta)
+        const tau_mag = Tau_max * Math.sin(thetaRad);
+        if (Math.abs(tau_mag) > 0.0001) {
+            const tColor = '#ef4444'; // Red
+            // Visually scale the torque vector so max (0.003) is drawn as 0.08m
+            const tVisualLen = (tau_mag / Tau_max) * 0.08; 
+            const tEnd = { x: 0, y: tVisualLen, z: 0 };
+            
+            drawArrow(toScreen(0,0,0), toScreen(tEnd.x, tEnd.y, tEnd.z), tColor, 4, 12);
+        }
+
+        // --- Draw Pivot Axis (Y axis) faintly ---
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(toScreen(0,-0.08,0).x, toScreen(0,-0.08,0).y);
+        ctx.lineTo(toScreen(0,0.08,0).x, toScreen(0,0.08,0).y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        updateDOM(Math.abs(tau_mag));
+
+        animationFrameId = requestAnimationFrame(draw);
+    }
+
+    function updateDOM(tau) {
+        valAngle.innerHTML = `${thetaDeg}&deg;`;
+        
+        // Convert to milliNewton-meters for display
+        const tau_mN = tau * 1000;
+        valTorque.innerHTML = `${tau_mN.toFixed(2)} mN&middot;m`;
+        
+        eqAngle.textContent = thetaDeg;
+        // Fix -0.000 edge case
+        let eqT = tau.toFixed(4);
+        if(eqT === "-0.0000") eqT = "0.0000";
+        eqTorque.textContent = eqT;
+
+        // Chart
+        const pct = (tau / Tau_max) * 100;
+        torqueBar.style.height = `${pct}%`;
+    }
+
+    window.setAngle = function(angle) {
+        angleSlider.value = angle;
+        thetaDeg = angle;
+        angleValue.innerHTML = `${angle}&deg;`;
+    }
+
+    angleSlider.addEventListener('input', (e) => {
+        thetaDeg = parseInt(e.target.value);
+        angleValue.innerHTML = `${thetaDeg}&deg;`;
+    });
+
+    window.addEventListener('load', () => {
+        resizeCanvas();
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>

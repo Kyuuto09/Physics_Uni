@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Electromagnetic Wave Analysis</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-e: #3b82f6; /* Blue for E-Field */
+            --accent-b: #ef4444; /* Red for B-Field */
+            --accent-s: #10b981; /* Emerald for Propagation */
+            --border-color: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container { flex-direction: row; height: 80vh; min-height: 600px; }
+        }
+
+        .visualization-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel { width: 380px; overflow-y: auto; padding-right: 0.5rem; }
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p { color: var(--text-muted); font-size: 0.85rem; }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text-muted); margin-bottom: 1rem; font-weight: 600;
+        }
+
+        .slider-container {
+            display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;
+        }
+        .slider-container label {
+            display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);
+        }
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 6px; background: #334155; border-radius: 3px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: #60a5fa; cursor: pointer; transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        .vector-legend {
+            display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.75rem; margin-bottom: 1rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: 0.25rem; color: var(--text-main); }
+        .legend-color { width: 12px; height: 12px; border-radius: 2px; }
+
+        .btn {
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 0.25rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+        .btn:hover { background: rgba(255,255,255,0.1); color: var(--text-main); }
+        .btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+
+        .equations {
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        .highlight-e { color: var(--accent-e); }
+        .highlight-b { color: var(--accent-b); }
+        .highlight-s { color: var(--accent-s); }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="visualization-area">
+        <div class="canvas-container" id="canvasWrap">
+            <canvas id="simCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>EM Wave Analysis</h1>
+            <p>Visualizing orthogonal Electric and Magnetic fields traveling through space.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Wave Components</div>
+            
+            <div class="vector-legend">
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-e)"></div> $\vec{E}$ (Y-axis)</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-b)"></div> $\vec{B}$ (Z-axis)</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--accent-s)"></div> $\vec{v}$ (X-axis)</div>
+            </div>
+
+            <button class="btn active" id="playBtn" onclick="togglePlay()">Pause Simulation</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="slider-container">
+                <label for="wlSlider">
+                    <span>Wavelength ($\lambda$)</span>
+                    <span id="wlValue">Normal</span>
+                </label>
+                <input type="range" id="wlSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+            </div>
+
+            <div class="slider-container">
+                <label for="freqSlider">
+                    <span>Frequency ($\omega$)</span>
+                    <span id="freqValue">Normal</span>
+                </label>
+                <input type="range" id="freqSlider" min="0.5" max="3.0" step="0.1" value="1.0">
+            </div>
+            
+            <div class="equations">
+                <div style="font-weight: 500;">General Wave Equations:</div>
+                <div style="margin-top:0.25rem;" class="highlight-e">
+                    $\vec{E}(x,t) = E_0 \sin(kx - \omega t) \hat{j}$
+                </div>
+                <div style="margin-top:0.25rem;" class="highlight-b">
+                    $\vec{B}(x,t) = B_0 \sin(kx - \omega t) \hat{k}$
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.75rem;">
+                    <strong>Notice:</strong> The Electric Field, Magnetic Field, and the direction of propagation are all perfectly mutually perpendicular. $\vec{S} \propto \vec{E} \times \vec{B}$.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State
+    let time = 0;
+    let isPlaying = true;
+    let animationFrameId = null;
+    
+    let waveMultiplier = 1.0; // Wavelength multiplier
+    let freqMultiplier = 1.0; // Speed multiplier
+
+    // DOM Elements
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    const playBtn = document.getElementById('playBtn');
+    const wlSlider = document.getElementById('wlSlider');
+    const freqSlider = document.getElementById('freqSlider');
+    const wlValue = document.getElementById('wlValue');
+    const freqValue = document.getElementById('freqValue');
+
+    // Isometric Projection Setup
+    let originX = 0;
+    let originY = 0;
+    let scale = 100; // pixels per unit
+    const angle30 = Math.PI / 6;
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+        
+        // Shift origin left and slightly down to show more +X axis
+        originX = canvas.width * 0.2;
+        originY = canvas.height * 0.55;
+        
+        // Adjust scale to fit 3-4 waves
+        scale = (canvas.width * 0.7) / (4 * Math.PI);
+
+        if(!animationFrameId && isPlaying) draw();
+        if(!isPlaying) draw(); // force single redraw
+    }
+
+    // Maps 3D (x,y,z) to 2D screen (sx, sy)
+    // X goes right-down
+    // Z goes left-down
+    // Y goes straight up
+    function toScreen(x, y, z) {
+        const sx = originX + (x - z) * Math.cos(angle30) * scale;
+        const sy = originY + (x + z) * Math.sin(angle30) * scale - y * scale;
+        return {x: sx, y: sy};
+    }
+
+    function drawArrow(from, to, color, width = 2, headLen = 6) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const angle = Math.atan2(dy, dx);
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(to.x, to.y);
+        ctx.lineTo(to.x - headLen * Math.cos(angle - Math.PI / 6), to.y - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(to.x - headLen * Math.cos(angle + Math.PI / 6), to.y - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(to.x, to.y);
+        ctx.fill();
+    }
+
+    function draw() {
+        if (isPlaying) {
+            time += 0.05 * freqMultiplier;
+        }
+
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Define length of visualization
+        const maxX = 4 * Math.PI;
+
+        // --- Draw Coordinate Axes ---
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        
+        // X Axis (Propagation)
+        const xAxisStart = toScreen(0, 0, 0);
+        const xAxisEnd = toScreen(maxX + 1, 0, 0);
+        drawArrow(xAxisStart, xAxisEnd, '#10b981', 3, 10);
+        ctx.fillStyle = '#10b981'; ctx.font = '14px Inter';
+        ctx.fillText('+X (Direction of Travel)', xAxisEnd.x + 10, xAxisEnd.y);
+
+        // Y Axis (E Field plane)
+        const yAxisStart = toScreen(0, -1.5, 0);
+        const yAxisEnd = toScreen(0, 1.5, 0);
+        ctx.beginPath(); ctx.moveTo(yAxisStart.x, yAxisStart.y); ctx.lineTo(yAxisEnd.x, yAxisEnd.y); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = '10px Inter'; ctx.fillText("+Y", yAxisEnd.x, yAxisEnd.y - 10);
+
+        // Z Axis (B Field plane)
+        const zAxisStart = toScreen(0, 0, -1.5);
+        const zAxisEnd = toScreen(0, 0, 1.5);
+        ctx.beginPath(); ctx.moveTo(zAxisStart.x, zAxisStart.y); ctx.lineTo(zAxisEnd.x, zAxisEnd.y); ctx.stroke();
+        ctx.fillText("+Z", zAxisEnd.x - 10, zAxisEnd.y + 15);
+
+        // --- Calculate and Draw Wave Vectors ---
+        const amplitude = 1.0;
+        const k = 1.0 / waveMultiplier; // wavenumber
+
+        // Arrays to hold points for continuous envelope lines
+        const ePoints = [];
+        const bPoints = [];
+
+        // Step size for drawing vectors
+        const dx = 0.2; 
+
+        // We draw from back to front (highest x to lowest x) for proper isometric depth sorting
+        // Actually, in our isometric projection (X right-down, Z left-down), 
+        // increasing X means bringing it closer and further right. 
+        // So we should draw from x = 0 up to x = maxX to sort properly?
+        // Wait, depth = x + z. Since z oscillates, depth varies slightly.
+        // But generally, smaller x is further "back-left".
+        // Let's just draw in order of x from 0 to maxX.
+        
+        // First pass: collect points for the envelope
+        for (let x = 0; x <= maxX; x += 0.05) {
+            const phase = k * x - time;
+            const val = amplitude * Math.sin(phase);
+            
+            // E is in Y
+            ePoints.push(toScreen(x, val, 0));
+            // B is in Z
+            bPoints.push(toScreen(x, 0, val));
+        }
+
+        // Draw Envelope Lines
+        ctx.lineWidth = 2;
+        
+        // B Envelope (Red)
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+        ctx.beginPath();
+        for (let i = 0; i < bPoints.length; i++) {
+            if (i===0) ctx.moveTo(bPoints[i].x, bPoints[i].y);
+            else ctx.lineTo(bPoints[i].x, bPoints[i].y);
+        }
+        ctx.stroke();
+
+        // E Envelope (Blue)
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+        ctx.beginPath();
+        for (let i = 0; i < ePoints.length; i++) {
+            if (i===0) ctx.moveTo(ePoints[i].x, ePoints[i].y);
+            else ctx.lineTo(ePoints[i].x, ePoints[i].y);
+        }
+        ctx.stroke();
+
+        // Second pass: Draw individual vectors
+        for (let x = 0; x <= maxX; x += dx) {
+            const phase = k * x - time;
+            const val = amplitude * Math.sin(phase);
+            
+            if (Math.abs(val) > 0.05) { // don't draw tiny arrows
+                const origin = toScreen(x, 0, 0);
+                
+                // B vector (Z axis)
+                const bEnd = toScreen(x, 0, val);
+                drawArrow(origin, bEnd, 'rgba(239, 68, 68, 0.6)', 1.5, 4);
+
+                // E vector (Y axis)
+                const eEnd = toScreen(x, val, 0);
+                drawArrow(origin, eEnd, 'rgba(59, 130, 246, 0.6)', 1.5, 4);
+            }
+        }
+
+        if (isPlaying) {
+            animationFrameId = requestAnimationFrame(draw);
+        }
+    }
+
+    // Controls
+    window.togglePlay = function() {
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+            playBtn.textContent = "Pause Simulation";
+            playBtn.classList.add('active');
+            draw();
+        } else {
+            playBtn.textContent = "Play Simulation";
+            playBtn.classList.remove('active');
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    wlSlider.addEventListener('input', (e) => {
+        waveMultiplier = parseFloat(e.target.value);
+        if (waveMultiplier === 1.0) wlValue.textContent = "Normal";
+        else if (waveMultiplier < 1.0) wlValue.textContent = "Shorter (Blue)";
+        else wlValue.textContent = "Longer (Red)";
+        if(!isPlaying) draw();
+    });
+
+    freqSlider.addEventListener('input', (e) => {
+        freqMultiplier = parseFloat(e.target.value);
+        if (freqMultiplier === 1.0) freqValue.textContent = "Normal";
+        else if (freqMultiplier < 1.0) freqValue.textContent = "Slower";
+        else freqValue.textContent = "Faster";
+    });
+
+    window.addEventListener('load', () => {
+        resizeCanvas();
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>

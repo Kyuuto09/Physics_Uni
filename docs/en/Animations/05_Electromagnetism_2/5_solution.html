@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capacitor Energy and Forces</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] } };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-c: #10b981; /* Emerald for Capacitance */
+            --accent-u: #f59e0b; /* Amber for Energy */
+            --accent-e: #3b82f6; /* Blue for E-Field */
+            --accent-f: #ef4444; /* Red for Force */
+            --border-color: #334155;
+            --grid-color: rgba(255, 255, 255, 0.05);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 1200px;
+            width: 100%;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        @media (min-width: 992px) {
+            .container { flex-direction: row; height: 80vh; min-height: 600px; }
+        }
+
+        .visualization-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            min-height: 400px;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #0b1120;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        .controls-panel {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) {
+            .controls-panel { width: 380px; overflow-y: auto; padding-right: 0.5rem; }
+        }
+
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text; background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p { color: var(--text-muted); font-size: 0.85rem; }
+
+        .card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;
+            color: var(--text-muted); margin-bottom: 1rem; font-weight: 600;
+        }
+
+        .slider-container {
+            display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem;
+        }
+        .slider-container label {
+            display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);
+        }
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 6px; background: #334155; border-radius: 3px; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%;
+            background: #60a5fa; cursor: pointer; transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        .bar-chart-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 120px;
+            margin-top: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            width: 20%;
+            height: 100%;
+            position: relative;
+        }
+
+        .bar {
+            width: 80%;
+            border-radius: 4px 4px 0 0;
+            transition: height 0.15s ease-out;
+            min-height: 2px;
+        }
+
+        .bar-label {
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-align: center;
+            width: 100%;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            font-size: 0.7rem;
+            font-family: monospace;
+            text-align: center;
+            width: 100%;
+            color: var(--text-muted);
+        }
+
+        .color-c { background: var(--accent-c); }
+        .color-u { background: var(--accent-u); }
+        .color-e { background: var(--accent-e); }
+        .color-f { background: var(--accent-f); }
+        .text-c { color: var(--accent-c); }
+        .text-u { color: var(--accent-u); }
+        .text-e { color: var(--accent-e); }
+        .text-f { color: var(--accent-f); }
+
+        .grid-2 {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem;
+            margin-top: 1.5rem;
+        }
+        .val-display { background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.5rem; }
+        .val-display span { display: block; font-family: monospace; color: var(--text-main); font-size: 0.9rem;}
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="visualization-area">
+        <div class="canvas-container" id="canvasWrap">
+            <canvas id="simCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="header">
+            <h1>Parallel-Plate Capacitor</h1>
+            <p>Interactive properties of a $0.02\text{ m}^2$ capacitor.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Live Properties</div>
+            
+            <div class="bar-chart-container">
+                <div class="bar-group">
+                    <div class="bar-value" id="bv-c">35.4</div>
+                    <div class="bar color-c" id="bar-c"></div>
+                    <div class="bar-label text-c">C (pF)</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value" id="bv-u">4.43</div>
+                    <div class="bar color-u" id="bar-u"></div>
+                    <div class="bar-label text-u">U (&mu;J)</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value" id="bv-e">1.0</div>
+                    <div class="bar color-e" id="bar-e"></div>
+                    <div class="bar-label text-e">E (10&sup5;)</div>
+                </div>
+                <div class="bar-group">
+                    <div class="bar-value" id="bv-f">0.89</div>
+                    <div class="bar color-f" id="bar-f"></div>
+                    <div class="bar-label text-f">F (mN)</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="val-display text-c">Capacitance $C$<span id="txt-c">35.40 pF</span></div>
+                <div class="val-display text-u">Stored Energy $U$<span id="txt-u">4.43 &mu;J</span></div>
+                <div class="val-display text-e">Electric Field $E$<span id="txt-e">1.00e5 V/m</span></div>
+                <div class="val-display text-f">Attraction $F$<span id="txt-f">0.89 mN</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Controls</div>
+            
+            <div class="slider-container">
+                <label for="dSlider">
+                    <span>Plate Distance ($d$)</span>
+                    <span id="dValue">5.0 mm</span>
+                </label>
+                <input type="range" id="dSlider" min="1.0" max="15.0" step="0.5" value="5.0">
+            </div>
+
+            <div class="slider-container">
+                <label for="vSlider">
+                    <span>Voltage ($V$)</span>
+                    <span id="vValue">500 V</span>
+                </label>
+                <input type="range" id="vSlider" min="0" max="1000" step="10" value="500">
+            </div>
+            
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">
+                <p><strong>Note:</strong> Force $F = \frac{1}{2} Q E$. It increases rapidly as plates get closer together (smaller $d$) because both the total charge $Q$ and field strength $E$ increase!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Physics Constants
+    const EPSILON_0 = 8.854e-12; // F/m
+    const AREA = 0.02; // m^2
+    
+    // Scale maximums for the bar charts (roughly based on max slider values)
+    // max V = 1000, min d = 1mm = 0.001m
+    const MAX_C = (EPSILON_0 * AREA) / 0.001; // 1.77e-10 F = 177 pF
+    const MAX_U = 0.5 * MAX_C * Math.pow(1000, 2); // 8.85e-5 J = 88.5 uJ
+    const MAX_E = 1000 / 0.001; // 1e6 V/m = 10 (x10^5)
+    // max Q = MAX_C * 1000 = 1.77e-7 C. F = 0.5 * Q * E
+    const MAX_F = 0.5 * (MAX_C * 1000) * MAX_E; // 0.0885 N = 88.5 mN
+
+    // State
+    let d_mm = 5.0; // mm
+    let V = 500; // Volts
+    let t = 0; // Animation time
+
+    // DOM
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    
+    const dSlider = document.getElementById('dSlider');
+    const vSlider = document.getElementById('vSlider');
+    const dValue = document.getElementById('dValue');
+    const vValue = document.getElementById('vValue');
+
+    const barC = document.getElementById('bar-c');
+    const barU = document.getElementById('bar-u');
+    const barE = document.getElementById('bar-e');
+    const barF = document.getElementById('bar-f');
+    const bvC = document.getElementById('bv-c');
+    const bvU = document.getElementById('bv-u');
+    const bvE = document.getElementById('bv-e');
+    const bvF = document.getElementById('bv-f');
+
+    const txtC = document.getElementById('txt-c');
+    const txtU = document.getElementById('txt-u');
+    const txtE = document.getElementById('txt-e');
+    const txtF = document.getElementById('txt-f');
+
+    function resizeCanvas() {
+        if (!canvas || !canvas.parentElement) return;
+        const parent = canvas.parentElement;
+        canvas.width = parent.clientWidth;
+        canvas.height = parent.clientHeight;
+    }
+
+    function calculatePhysics() {
+        const d_m = d_mm / 1000.0;
+        
+        const C = (EPSILON_0 * AREA) / d_m; // Farads
+        const U = 0.5 * C * V * V; // Joules
+        const E = V / d_m; // V/m
+        const Q = C * V; // Coulombs
+        const F = 0.5 * Q * E; // Newtons
+
+        return { C, U, E, Q, F };
+    }
+
+    function updateDOM(p) {
+        // C in pF
+        const c_pf = p.C * 1e12;
+        barC.style.height = `${Math.min(100, (p.C / MAX_C) * 100)}%`;
+        bvC.textContent = c_pf.toFixed(1);
+        txtC.textContent = `${c_pf.toFixed(2)} pF`;
+
+        // U in uJ
+        const u_uj = p.U * 1e6;
+        barU.style.height = `${Math.min(100, (p.U / MAX_U) * 100)}%`;
+        bvU.textContent = u_uj.toFixed(1);
+        txtU.textContent = `${u_uj.toFixed(2)} \u03BCJ`;
+
+        // E in 10^5 V/m
+        const e_105 = p.E / 1e5;
+        barE.style.height = `${Math.min(100, (p.E / MAX_E) * 100)}%`;
+        bvE.textContent = e_105.toFixed(1);
+        txtE.textContent = `${e_105.toFixed(2)}e5 V/m`;
+
+        // F in mN
+        const f_mn = p.F * 1000;
+        barF.style.height = `${Math.min(100, (p.F / MAX_F) * 100)}%`;
+        bvF.textContent = f_mn.toFixed(2);
+        txtF.textContent = `${f_mn.toFixed(2)} mN`;
+    }
+
+    function drawArrow(x1, y1, x2, y2, color, width) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const angle = Math.atan2(dy, dx);
+        const headLen = 8;
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = width;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.lineTo(x2, y2);
+        ctx.fill();
+    }
+
+    function draw() {
+        t += 0.05;
+        ctx.fillStyle = '#0b1120';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const phys = calculatePhysics();
+        updateDOM(phys);
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        // Drawing scale
+        // max d_mm = 15. We want 15mm to be about 60% of canvas width.
+        const maxDrawWidth = canvas.width * 0.5;
+        const pxPerMm = maxDrawWidth / 15.0;
+        
+        const currentDistPx = d_mm * pxPerMm;
+        const plateHeight = canvas.height * 0.6;
+        const plateThickness = 12;
+
+        const leftPlateX = cx - currentDistPx / 2 - plateThickness;
+        const rightPlateX = cx + currentDistPx / 2;
+        const plateY = cy - plateHeight / 2;
+
+        // --- Draw Wires (Circuit) ---
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        // Left wire to top left
+        ctx.moveTo(leftPlateX, cy);
+        ctx.lineTo(cx - maxDrawWidth, cy);
+        ctx.lineTo(cx - maxDrawWidth, canvas.height - 30);
+        ctx.lineTo(cx - 30, canvas.height - 30);
+        ctx.stroke();
+
+        ctx.beginPath();
+        // Right wire to top right
+        ctx.moveTo(rightPlateX + plateThickness, cy);
+        ctx.lineTo(cx + maxDrawWidth, cy);
+        ctx.lineTo(cx + maxDrawWidth, canvas.height - 30);
+        ctx.lineTo(cx + 30, canvas.height - 30);
+        ctx.stroke();
+
+        // Battery symbol at bottom
+        ctx.fillStyle = '#ef4444'; // + terminal
+        ctx.fillRect(cx - 30, canvas.height - 50, 8, 40);
+        ctx.fillStyle = '#3b82f6'; // - terminal
+        ctx.fillRect(cx + 22, canvas.height - 40, 8, 20);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '14px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${V}V`, cx, canvas.height - 25);
+
+        // --- Draw E-Field Lines ---
+        // Number of lines proportional to E
+        const maxLines = 15;
+        // Map E field to number of lines
+        let numLines = Math.max(1, Math.floor((phys.E / MAX_E) * maxLines * 1.5));
+        if (V === 0) numLines = 0;
+
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < numLines; i++) {
+            // evenly spaced
+            const yOffset = plateY + (plateHeight / (numLines + 1)) * (i + 1);
+            
+            // animate field flowing
+            const dashOffset = (t * 20) % 20;
+            ctx.setLineDash([10, 10]);
+            ctx.lineDashOffset = -dashOffset;
+            
+            ctx.beginPath();
+            ctx.moveTo(leftPlateX + plateThickness, yOffset);
+            ctx.lineTo(rightPlateX, yOffset);
+            ctx.stroke();
+            
+            // tiny arrowhead in middle
+            const mx = cx;
+            drawArrow(mx - 5, yOffset, mx + 5, yOffset, 'rgba(59, 130, 246, 0.6)', 2);
+        }
+        ctx.setLineDash([]);
+
+        // --- Draw Force Arrows ---
+        // Force pulls plates together. Size proportional to F.
+        if (phys.F > 0.001) {
+            const fScale = Math.min(1.0, phys.F / 0.05); // scale max visual force
+            const fLen = 20 + fScale * 50;
+            const fColor = 'rgba(239, 68, 68, 0.8)'; // Red
+            
+            // Left plate feels force to right
+            drawArrow(leftPlateX - fLen, cy, leftPlateX, cy, fColor, 3 + fScale*4);
+            // Right plate feels force to left
+            drawArrow(rightPlateX + plateThickness + fLen, cy, rightPlateX + plateThickness, cy, fColor, 3 + fScale*4);
+        }
+
+        // --- Draw Plates ---
+        // Left Plate (+)
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(leftPlateX, plateY, plateThickness, plateHeight);
+        
+        // Right Plate (-)
+        ctx.fillRect(rightPlateX, plateY, plateThickness, plateHeight);
+
+        // --- Draw Charges ---
+        // Number of charges proportional to Q
+        const maxCharges = 15;
+        let numCharges = Math.floor((phys.Q / (1.77e-7)) * maxCharges);
+        if (V === 0) numCharges = 0;
+
+        ctx.fillStyle = '#ef4444'; // Red for +
+        ctx.font = '14px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        for (let i = 0; i < numCharges; i++) {
+            const yOffset = plateY + (plateHeight / (numCharges + 1)) * (i + 1);
+            ctx.fillText('+', leftPlateX + plateThickness/2, yOffset);
+        }
+
+        ctx.fillStyle = '#3b82f6'; // Blue for -
+        for (let i = 0; i < numCharges; i++) {
+            const yOffset = plateY + (plateHeight / (numCharges + 1)) * (i + 1);
+            ctx.fillText('-', rightPlateX + plateThickness/2, yOffset);
+        }
+
+        requestAnimationFrame(draw);
+    }
+
+    // Controls
+    dSlider.addEventListener('input', (e) => {
+        d_mm = parseFloat(e.target.value);
+        dValue.textContent = `${d_mm.toFixed(1)} mm`;
+    });
+
+    vSlider.addEventListener('input', (e) => {
+        V = parseFloat(e.target.value);
+        vValue.textContent = `${V} V`;
+    });
+
+    window.addEventListener('load', () => {
+        resizeCanvas();
+        draw();
+    });
+    window.addEventListener('resize', resizeCanvas);
+
+</script>
+</body>
+</html>
