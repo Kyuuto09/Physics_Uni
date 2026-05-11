@@ -36,12 +36,14 @@ $$\Delta B = (10^{-7}) \frac{0.3}{0.04}$$
 $$\Delta B = (10^{-7}) \cdot 7.5$$
 $$\Delta B = 7.5 \times 10^{-7} \text{ T}$$
 
+
+### 4. Final Answer
+
+- **Magnetic Field ($B$):** $7.5 \times 10^{-7} \text{ T}$ (or $0.75 \, \mu\text{T}$) based on the standard small-segment Biot-Savart approximation.
+
 ---
 
 ### 3. Rigorous Extension: Finite Wire Approach
-
-*(Note: While textbook problems using the phrase "small segment" expect the approximation above, a rigorous physicist might note that $\Delta l = 0.1 \text{ m}$ isn't infinitely small compared to $r = 0.2 \text{ m}$. For completeness, here is what the exact calculation of a finite wire of $L = 0.1 \text{ m}$ yields at its perpendicular bisector)*
-
 The exact formula for a finite wire is:
 $$B = \frac{\mu_0 I}{4\pi r} 2\sin(\theta_{end})$$
 Where $\theta_{end}$ is the angle to the ends of the wire. We find it using a right triangle with adjacent side $r = 0.2$ and opposite side $L/2 = 0.05$:

@@ -42,3 +42,5 @@ $$f \approx 5.45 \times 10^{14} \text{ Hz}$$
 
 1. **Color:** Yellow-Green
 2. **Frequency ($f$):** $5.45 \times 10^{14} \text{ Hz}$ (or $545 \text{ THz}$)
+
+![[Pasted image 20260505170320.png]]

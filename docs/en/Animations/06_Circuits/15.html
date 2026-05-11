@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resistor Cube Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-glow: #06b6d4;
+            --meter-bg: #020617;
+            --meter-text: #22c55e;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 2rem;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 60%);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        h1 { margin-bottom: 2rem; font-weight: 800; font-size: 2.5rem; text-align: center; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            max-width: 1200px;
+            width: 100%;
+            margin-top: 2rem;
+        }
+
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls {
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .visualization {
+            flex: 2;
+            min-width: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .multimeter {
+            background: var(--meter-bg);
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 1.5rem 2.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            position: relative;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .multimeter::before {
+            content: 'EQUIVALENT RESISTANCE';
+            position: absolute;
+            top: 0.5rem;
+            left: 1rem;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            font-weight: 800;
+            letter-spacing: 0.1em;
+        }
+
+        .reading {
+            font-family: monospace;
+            font-size: 3.5rem;
+            font-weight: bold;
+            color: var(--meter-text);
+            text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+        }
+
+        canvas {
+            width: 100%;
+            height: 500px;
+            cursor: grab;
+            border-radius: 12px;
+            background: rgba(0,0,0,0.2);
+        }
+        canvas:active { cursor: grabbing; }
+
+        .instructions {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 1.05rem;
+        }
+
+        .legend {
+            margin-top: auto;
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Resistor Cube Visualizer</h1>
+
+    <div class="container">
+        <div class="panel controls">
+            <div class="instructions">
+                <h2 style="color: white; margin-bottom: 1rem; font-size: 1.5rem;">Interactive Physics</h2>
+                <p style="margin-bottom: 1rem;">This cube consists of 12 identical 1Ω resistors.</p>
+                <p style="margin-bottom: 1rem;"><strong>Click on any two nodes</strong> (the circles) to connect the power supply. The equivalent resistance will calculate dynamically.</p>
+                <p><strong>Drag the cube</strong> to rotate it and inspect the current flow. Brighter, thicker lines carry more current.</p>
+            </div>
+
+            <div class="legend">
+                <h3 style="color: white; font-size: 1rem; margin-bottom: 0.5rem;">Known Math Configurations:</h3>
+                <div class="legend-item">
+                    <span style="color: white; font-weight: bold;">Opposite Corners:</span> 5/6 Ω (≈ 0.833 Ω)
+                </div>
+                <div class="legend-item">
+                    <span style="color: white; font-weight: bold;">Face Diagonal:</span> 3/4 Ω (0.750 Ω)
+                </div>
+                <div class="legend-item">
+                    <span style="color: white; font-weight: bold;">Adjacent Nodes:</span> 7/12 Ω (≈ 0.583 Ω)
+                </div>
+            </div>
+        </div>
+
+        <div class="panel visualization">
+            <div class="multimeter">
+                <span class="reading" id="meter-val">0.833</span>
+                <span style="color: var(--meter-text); font-size: 2.5rem; font-weight: bold;">Ω</span>
+            </div>
+            <canvas id="cube-canvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('cube-canvas');
+        const ctx = canvas.getContext('2d');
+        const meterVal = document.getElementById('meter-val');
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            // fixed height 500px in css
+            canvas.height = 500;
+            draw();
+        }
+        window.addEventListener('resize', resize);
+
+        // --- 3D Engine & Physics Data ---
+        
+        // 8 Vertices of a cube centered at 0
+        const baseVertices = [
+            [-1, -1, -1], [ 1, -1, -1], [ 1,  1, -1], [-1,  1, -1], // Front face
+            [-1, -1,  1], [ 1, -1,  1], [ 1,  1,  1], [-1,  1,  1]  // Back face
+        ];
+
+        // 12 Edges connecting vertices
+        const edges = [
+            [0,1], [1,2], [2,3], [3,0], // Front
+            [4,5], [5,6], [6,7], [7,4], // Back
+            [0,4], [1,5], [2,6], [3,7]  // Connectors
+        ];
+
+        // Adjacency list for physics solver
+        const neighbors = Array.from({length: 8}, () => []);
+        edges.forEach(([u, v]) => {
+            neighbors[u].push(v);
+            neighbors[v].push(u);
+        });
+
+        let rotX = 0.5; // initial rotation
+        let rotY = 0.5;
+        let scale = 120; // size of cube
+
+        let startNode = 0;
+        let endNode = 6; // default: opposite corners
+
+        let V = [0,0,0,0,0,0,0,0]; // Voltages at nodes
+        let Req = 0;
+
+        // --- Physics Solver ---
+        function solvePhysics() {
+            if (startNode === null || endNode === null || startNode === endNode) {
+                Req = 0;
+                V.fill(0);
+                return;
+            }
+
+            // Gauss-Seidel iterative solver for nodal analysis
+            V.fill(0.5); // Initial guess
+            V[startNode] = 1.0;
+            V[endNode] = 0.0;
+
+            for(let iter=0; iter<200; iter++) {
+                for(let i=0; i<8; i++) {
+                    if (i === startNode || i === endNode) continue;
+                    let sum = 0;
+                    for(let j of neighbors[i]) {
+                        sum += V[j];
+                    }
+                    V[i] = sum / 3.0; // R=1 for all edges
+                }
+            }
+
+            // Calculate total current leaving startNode
+            let totalI = 0;
+            for(let j of neighbors[startNode]) {
+                totalI += (V[startNode] - V[j]); // I = V/R, R=1
+            }
+
+            // Req = V_total / I_total. Since V_total = 1.0, Req = 1.0 / totalI
+            Req = 1.0 / totalI;
+            meterVal.innerText = Req.toFixed(3);
+        }
+
+        // --- 3D Projection ---
+        function project(x, y, z) {
+            // Rotate around X
+            let y1 = y * Math.cos(rotX) - z * Math.sin(rotX);
+            let z1 = y * Math.sin(rotX) + z * Math.cos(rotX);
+            
+            // Rotate around Y
+            let x2 = x * Math.cos(rotY) + z1 * Math.sin(rotY);
+            let z2 = -x * Math.sin(rotY) + z1 * Math.cos(rotY);
+            
+            // Isometric perspective
+            let f = 500 / (500 + z2 * 50); // fake depth
+            
+            return {
+                x: (canvas.width / 2) + x2 * scale * f,
+                y: (canvas.height / 2) + y1 * scale * f,
+                z: z2 // keep z for depth sorting if needed
+            };
+        }
+
+        // --- Rendering ---
+        let projectedNodes = [];
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            solvePhysics();
+
+            projectedNodes = baseVertices.map(v => project(v[0], v[1], v[2]));
+
+            // Draw Edges
+            edges.forEach(([u, v]) => {
+                let p1 = projectedNodes[u];
+                let p2 = projectedNodes[v];
+                
+                // Calculate current on this edge
+                let current = Math.abs(V[u] - V[v]);
+                
+                // Base line
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                if (current > 0.01) {
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    
+                    // Thicker and brighter based on current
+                    ctx.lineWidth = Math.max(1, current * 12);
+                    
+                    // Color gradient based on current intensity
+                    let intensity = Math.min(1, current * 2.5);
+                    ctx.strokeStyle = `rgba(6, 182, 212, ${0.3 + intensity*0.7})`;
+                    
+                    ctx.shadowBlur = intensity * 15;
+                    ctx.shadowColor = '#06b6d4';
+                    
+                    ctx.stroke();
+                    ctx.shadowBlur = 0; // reset
+                }
+            });
+
+            // Draw Nodes
+            projectedNodes.forEach((p, i) => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+                
+                if (i === startNode) {
+                    ctx.fillStyle = '#ef4444'; // Red for Positive
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#ef4444';
+                } else if (i === endNode) {
+                    ctx.fillStyle = '#3b82f6'; // Blue for Negative
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#3b82f6';
+                } else {
+                    ctx.fillStyle = '#1e293b';
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        // --- Interaction ---
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Check if clicked a node
+            let clickedNode = -1;
+            for(let i=0; i<projectedNodes.length; i++) {
+                let p = projectedNodes[i];
+                let dist = Math.hypot(mouseX - p.x, mouseY - p.y);
+                if (dist < 15) {
+                    clickedNode = i;
+                    break;
+                }
+            }
+
+            if (clickedNode !== -1) {
+                // Update start/end nodes
+                if (clickedNode === startNode) {
+                    startNode = null;
+                } else if (clickedNode === endNode) {
+                    endNode = null;
+                } else {
+                    if (startNode === null) startNode = clickedNode;
+                    else if (endNode === null) endNode = clickedNode;
+                    else {
+                        // shift
+                        startNode = endNode;
+                        endNode = clickedNode;
+                    }
+                }
+                draw();
+            } else {
+                isDragging = true;
+                lastMouseX = mouseX;
+                lastMouseY = mouseY;
+            }
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            let dx = mouseX - lastMouseX;
+            let dy = mouseY - lastMouseY;
+
+            rotY += dx * 0.01;
+            rotX -= dy * 0.01; // invert Y rotation
+
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            
+            draw();
+        });
+
+        // Init
+        resize();
+
+    </script>
+</body>
+</html>
