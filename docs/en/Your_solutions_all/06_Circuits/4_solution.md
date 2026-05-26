@@ -3,9 +3,7 @@
 ### 1. Problem Statement
 
 Calculate the equivalent resistance for the circuit shown in the figure. All resistors have a resistance of $10\ \Omega$.
-
-![[Pasted image 20260511160247.png]]
-
+![[Pasted image 20260512165233.png]]
 ---
 
 ### 2. Solution and Explanation
@@ -58,3 +56,4 @@ $$R_{eq} = \frac{130}{7}\,\Omega$$
 ### 3. Final Answer
 
 *   **Equivalent Resistance ($R_{eq}$):** $\frac{130}{7}\,\Omega \approx 18.57\,\Omega$
+![[Pasted image 20260512165607.png]]

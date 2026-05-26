@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mass-Spring Experimental Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-glow: #3b82f6;
+            --meter-bg: #020617;
+            --meter-text: #22c55e;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 2rem;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+        }
+
+        h1 { margin-bottom: 2rem; font-weight: 800; font-size: 2.5rem; text-align: center; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .visualization {
+            flex: 1;
+            min-width: 400px;
+            align-items: center;
+            align-self: flex-start;
+        }
+
+        .controls {
+            flex: 1;
+            min-width: 350px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 500px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+        }
+
+        .stopwatch-container {
+            background: var(--meter-bg);
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            margin-bottom: 2rem;
+        }
+
+        .time-display {
+            font-family: monospace;
+            font-size: 4rem;
+            font-weight: bold;
+            color: var(--meter-text);
+            text-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+            margin-bottom: 1rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .btn-primary { background: rgba(59, 130, 246, 0.2); border: 1px solid var(--accent-glow); }
+        .btn-primary:hover { background: rgba(59, 130, 246, 0.4); box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        
+        .btn-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.4); box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+
+        .btn-success { background: rgba(34, 197, 94, 0.2); border: 1px solid var(--meter-text); }
+        .btn-success:hover { background: rgba(34, 197, 94, 0.4); box-shadow: 0 0 15px rgba(34, 197, 94, 0.5); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: center;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        th { color: var(--text-secondary); font-size: 0.9rem; }
+        td { font-family: monospace; font-size: 1.1rem; }
+
+        .instructions {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Mass-Spring Experimental Simulator</h1>
+
+    <div class="container">
+        <!-- Physics Engine -->
+        <div class="panel visualization">
+            <canvas id="sim-canvas"></canvas>
+            <button class="btn-primary" style="width: 100%;" onclick="toggleOscillation()" id="btn-osc">Release Mass (Start Oscillation)</button>
+        </div>
+
+        <!-- Data Collection -->
+        <div class="panel controls">
+            <div class="instructions">
+                <strong>Task:</strong> You need to experimentally determine the unknown spring constant \(k\). The mass is known to be exactly \(1.00\text{ kg}\). <br><br>
+                1. Release the mass.<br>
+                2. Use the stopwatch to time exactly <strong>10 full oscillations</strong>.<br>
+                3. Click "Stop" to automatically record the time to the table.<br>
+                4. Repeat at least 5 times (ideally 10) to collect a robust dataset.
+            </div>
+
+            <button class="btn-primary" style="width: 100%; margin-bottom: 1rem; background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6;" onclick="autoMeasure10()">
+                Auto-Measure 10 Oscillations (Simulate Human Error)
+            </button>
+
+            <div class="stopwatch-container">
+                <div class="time-display" id="time-display">0.00</div>
+                <div class="btn-group">
+                    <button class="btn-primary" id="btn-sw-start" onclick="toggleStopwatch()">Start</button>
+                    <button class="btn-danger" onclick="resetStopwatch()">Reset</button>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Trial</th>
+                        <th>Time for 10 osc. (\(t_{10}\) in s)</th>
+                    </tr>
+                </thead>
+                <tbody id="data-table">
+                    <!-- Data rows will populate here -->
+                </tbody>
+            </table>
+
+            <button class="btn-success" style="width: 100%; margin-top: 1rem; display: none;" id="btn-analyze" onclick="runAnalysis()">
+                Run Experimental Analysis
+            </button>
+
+            <div id="analysis-container" style="margin-top: 2rem; display: none; background: rgba(0,0,0,0.4); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--glass-border); font-size: 1.1rem; line-height: 1.7;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const timeDisplay = document.getElementById('time-display');
+        const btnSwStart = document.getElementById('btn-sw-start');
+        const btnOsc = document.getElementById('btn-osc');
+        const dataTable = document.getElementById('data-table');
+
+        // Layout
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth - 64; // account for padding
+            canvas.height = 500;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Physics Parameters
+        // HIDDEN TRUE PARAMS: m = 1.0, k = 15.0. True period = 1.6223 s. True 10-osc = 16.223 s
+        const m = 1.0; 
+        const k = 15.0;
+        const omega = Math.sqrt(k / m);
+        const amplitude = 120; // pixels
+        const eqY = 250; // Equilibrium position (Y coordinate in pixels)
+
+        let isOscillating = false;
+        let simStartTime = 0;
+        let currentY = eqY + amplitude; // Starts at bottom stretch
+
+        // Stopwatch State
+        let swRunning = false;
+        let swStartTime = 0;
+        let swElapsedTime = 0;
+        let swInterval = null;
+
+        let measurements = [];
+        const maxTrials = 50; // allow many trials
+
+        // --- Physics Animation ---
+        function animate(timestamp) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const cx = canvas.width / 2;
+
+            if (isOscillating) {
+                // Calculate position based on perfect SHM math
+                const t = (timestamp - simStartTime) / 1000;
+                currentY = eqY + amplitude * Math.cos(omega * t);
+            }
+
+            // Draw Ceiling
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(cx - 100, 20, 200, 20);
+
+            // Draw Spring
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(cx, 40);
+            
+            const springCoils = 12;
+            const springLen = currentY - 40 - 25; // leave room for mass
+            for(let i=0; i<=springCoils; i++) {
+                let sy = 40 + (i/springCoils)*springLen;
+                let sx = cx + (i%2===0 ? 25 : -25);
+                if(i===0 || i===springCoils) sx = cx;
+                ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+
+            // Draw Mass (1kg block)
+            ctx.fillStyle = '#3b82f6';
+            ctx.shadowColor = '#3b82f6';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(cx - 40, currentY - 25, 80, 50);
+            ctx.shadowBlur = 0;
+
+            // Draw Equilibrium line faintly
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, eqY);
+            ctx.lineTo(canvas.width, eqY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.font = '12px Inter';
+            ctx.fillText('Equilibrium', 10, eqY - 5);
+
+            requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+
+        function toggleOscillation() {
+            if (isOscillating) {
+                isOscillating = false;
+                currentY = eqY + amplitude; // Reset to bottom
+                btnOsc.innerText = "Release Mass (Start Oscillation)";
+                btnOsc.classList.remove('btn-danger');
+                btnOsc.classList.add('btn-primary');
+            } else {
+                isOscillating = true;
+                simStartTime = performance.now();
+                btnOsc.innerText = "Stop & Reset Mass";
+                btnOsc.classList.remove('btn-primary');
+                btnOsc.classList.add('btn-danger');
+            }
+        }
+
+        // --- Stopwatch Logic ---
+        function updateStopwatchDisplay() {
+            timeDisplay.innerText = swElapsedTime.toFixed(2);
+        }
+
+        function toggleStopwatch() {
+            if (swRunning) {
+                // Stop
+                swRunning = false;
+                btnSwStart.innerText = "Start";
+                btnSwStart.classList.remove('btn-danger');
+                btnSwStart.classList.add('btn-primary');
+                cancelAnimationFrame(swInterval);
+                recordTime(); // Auto-record when stopped
+            } else {
+                // Start
+                swRunning = true;
+                btnSwStart.innerText = "Stop";
+                btnSwStart.classList.remove('btn-primary');
+                btnSwStart.classList.add('btn-danger');
+                
+                let lastTime = performance.now();
+                function tick(now) {
+                    if (!swRunning) return;
+                    swElapsedTime += (now - lastTime) / 1000;
+                    lastTime = now;
+                    updateStopwatchDisplay();
+                    swInterval = requestAnimationFrame(tick);
+                }
+                swInterval = requestAnimationFrame(tick);
+            }
+        }
+
+        function resetStopwatch() {
+            if (swRunning) toggleStopwatch();
+            swElapsedTime = 0;
+            updateStopwatchDisplay();
+        }
+
+        function recordTime() {
+            if (measurements.length >= maxTrials) {
+                alert("You've recorded enough trials!");
+                return;
+            }
+            if (swElapsedTime === 0) return;
+
+            measurements.push(swElapsedTime);
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="color: var(--text-secondary)">Trial ${measurements.length}</td>
+                <td style="color: var(--meter-text); font-weight: bold;">${swElapsedTime.toFixed(2)}</td>
+            `;
+            dataTable.appendChild(tr);
+
+            if (measurements.length >= 5) {
+                document.getElementById('btn-analyze').style.display = 'block';
+            }
+        }
+
+        // Auto-Measure Feature
+        function autoMeasure10() {
+            if (measurements.length >= maxTrials) {
+                alert("You've recorded enough trials!");
+                return;
+            }
+            if (swRunning) toggleStopwatch();
+            
+            // True physics time for 10 oscillations
+            const truePeriod = (2 * Math.PI) / omega;
+            const true10Time = truePeriod * 10;
+            
+            // Add random human reaction error between -0.15s and +0.15s
+            const humanError = (Math.random() * 0.3) - 0.15;
+            const measuredTime = true10Time + humanError;
+            
+            // Instantly record it
+            swElapsedTime = measuredTime;
+            updateStopwatchDisplay();
+            recordTime();
+        }
+
+        // --- Data Analysis ---
+        function runAnalysis() {
+            if (measurements.length < 5) {
+                alert("Please record at least 5 trials first!");
+                return;
+            }
+            const N = measurements.length;
+            
+            let sum = 0;
+            for (let t of measurements) sum += t;
+            const meanT10 = sum / N;
+
+            let sqSum = 0;
+            for (let t of measurements) sqSum += Math.pow(t - meanT10, 2);
+            const stdDevT10 = Math.sqrt(sqSum / (N - 1));
+
+            const T = meanT10 / 10;
+            // Uncertainty in mean time for 10 osc is Standard Error of the Mean (stdDev / sqrt(N))
+            const deltaT10 = stdDevT10 / Math.sqrt(N);
+            // Uncertainty in 1 osc is deltaT10 / 10
+            const deltaT = deltaT10 / 10;
+
+            const calc_m = 1.00;
+            const k_calc = (4 * Math.PI * Math.PI * calc_m) / (T * T);
+            // Relative uncertainty: deltaK/K = 2 * deltaT/T
+            const deltaK = k_calc * 2 * (deltaT / T);
+
+            const container = document.getElementById('analysis-container');
+            container.style.display = 'block';
+
+            // Generate HTML with LaTeX strings
+            const html = `
+                <h3 style="margin-bottom: 1rem; color: var(--accent-glow);">Experimental Analysis</h3>
+                
+                <p><strong>1. Mean time for 10 oscillations:</strong></p>
+                <p>\\( \\bar{t}_{10} = \\frac{1}{10} \\sum t_i = ${meanT10.toFixed(3)}\\text{ s} \\)</p>
+                
+                <p style="margin-top: 1rem;"><strong>2. Standard Deviation of \\(t_{10}\\):</strong></p>
+                <p>\\( \\sigma_{t10} = \\sqrt{\\frac{\\sum (t_i - \\bar{t}_{10})^2}{N-1}} = ${stdDevT10.toFixed(3)}\\text{ s} \\)</p>
+
+                <p style="margin-top: 1rem;"><strong>3. Mean Period (\\(T\\)) and its Uncertainty (\\(\\Delta T\\)):</strong></p>
+                <p>\\( T = \\frac{\\bar{t}_{10}}{10} = ${T.toFixed(4)}\\text{ s} \\)</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">* Uncertainty is the Standard Error of the Mean divided by 10:</p>
+                <p>\\( \\Delta T = \\frac{\\sigma_{t10} / \\sqrt{10}}{10} = ${deltaT.toFixed(4)}\\text{ s} \\)</p>
+
+                <p style="margin-top: 1rem;"><strong>4. Experimental Spring Constant (\\(k\\)):</strong></p>
+                <p>\\( T = 2\\pi \\sqrt{\\frac{m}{k}} \\implies k = \\frac{4\\pi^2 m}{T^2} \\)</p>
+                <p>\\( k = \\frac{4\\pi^2 (1.00)}{(${T.toFixed(4)})^2} = ${k_calc.toFixed(3)}\\text{ N/m} \\)</p>
+
+                <p style="margin-top: 1rem;"><strong>5. Error Propagation for \\(k\\):</strong></p>
+                <p>\\( \\frac{\\Delta k}{k} = \\left| -2 \\right| \\frac{\\Delta T}{T} \\)</p>
+                <p>\\( \\Delta k = ${k_calc.toFixed(3)} \\cdot 2 \\cdot \\left(\\frac{${deltaT.toFixed(4)}}{${T.toFixed(4)}}\\right) = ${deltaK.toFixed(3)}\\text{ N/m} \\)</p>
+
+                <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--meter-text); border-radius: 8px;">
+                    <strong>Final Result:</strong><br>
+                    <div style="font-size: 1.2rem; margin-top: 0.5rem;">
+                        \\( k = (${k_calc.toFixed(2)} \\pm ${deltaK.toFixed(2)}) \\text{ N/m} \\)
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">* The true hidden simulation value was exactly 15.00 N/m! Your experimental error successfully captured it.</div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+            
+            // Tell MathJax to re-render the new LaTeX inside the container
+            if (window.MathJax) {
+                MathJax.typesetPromise([container]).catch(function (err) {
+                    console.error('MathJax error: ', err.message);
+                });
+            }
+        }
+
+    </script>
+</body>
+</html>

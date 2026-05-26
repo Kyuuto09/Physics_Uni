@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Linear Regression</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-glow: #ec4899;
+            --danger: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 2rem;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+        }
+
+        h1 { margin-bottom: 2rem; font-weight: 800; font-size: 2.5rem; text-align: center; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .visualization {
+            flex: 1.2;
+            min-width: 500px;
+            align-items: center;
+            align-self: flex-start;
+        }
+
+        .controls {
+            flex: 1;
+            min-width: 400px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 600px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            cursor: crosshair;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+
+        .btn-primary { background: rgba(236, 72, 153, 0.2); border: 1px solid var(--accent-glow); }
+        .btn-primary:hover { background: rgba(236, 72, 153, 0.4); box-shadow: 0 0 15px rgba(236, 72, 153, 0.5); }
+        
+        .btn-danger { background: rgba(239, 68, 68, 0.2); border: 1px solid var(--danger); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.4); box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); }
+
+        .instructions {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        #analysis-container {
+            background: rgba(0,0,0,0.4);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            font-size: 1.1rem;
+            line-height: 1.7;
+            overflow-x: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Interactive Linear Regression Engine</h1>
+
+    <div class="container">
+        <!-- Physics Graph -->
+        <div class="panel visualization">
+            <canvas id="graph-canvas"></canvas>
+            <div class="instructions" style="text-align: center; margin-bottom: 0;">
+                <strong>Click</strong> anywhere on the graph to add a new data point.<br>
+                <strong>Click an existing point</strong> to remove it.
+            </div>
+            <div class="btn-group" style="margin-top: 1rem;">
+                <button class="btn-danger" onclick="clearData()">Clear All Data</button>
+                <button class="btn-primary" onclick="loadProblemData()">Load Problem 10 Dataset</button>
+            </div>
+        </div>
+
+        <!-- Math Engine -->
+        <div class="panel controls">
+            <div class="instructions">
+                <strong>Physics Context: Ohm's Law</strong><br>
+                A series of voltage (\(V\)) and current (\(I\)) measurements for a resistor are taken. Ohm's Law states \(V = IR\). 
+                If the voltmeter has a zero-offset error, the equation becomes \(V = IR + V_0\).<br><br>
+                This engine performs real-time <strong>Least Squares Linear Regression</strong> to perfectly calculate the resistance (\(R\)), the offset (\(V_0\)), and their statistical uncertainties!
+            </div>
+
+            <div id="analysis-container">
+                <!-- MathJax equations will dynamically render here -->
+                <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">
+                    Add at least 3 points to see the magic!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('graph-canvas');
+        const ctx = canvas.getContext('2d');
+        const analysisContainer = document.getElementById('analysis-container');
+
+        // Layout
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth - 64; 
+            canvas.height = 600;
+            drawGraph();
+        }
+        window.addEventListener('resize', resize);
+        
+        // Data structure
+        let points = []; // Array of {x, y}
+
+        // Graph boundaries
+        const padding = 60;
+        const xMax = 0.8; // Current (A)
+        const yMax = 8.0; // Voltage (V)
+
+        function loadProblemData() {
+            points = [
+                {x: 0.1, y: 1.1},
+                {x: 0.2, y: 2.1},
+                {x: 0.3, y: 2.9},
+                {x: 0.4, y: 4.1},
+                {x: 0.5, y: 4.9}
+            ];
+            drawGraph();
+            runAnalysis();
+        }
+
+        function clearData() {
+            points = [];
+            drawGraph();
+            runAnalysis();
+        }
+
+        // Coordinate transforms
+        function getPx(x) {
+            return padding + (x / xMax) * (canvas.width - padding * 2);
+        }
+        function getPy(y) {
+            return canvas.height - padding - (y / yMax) * (canvas.height - padding * 2);
+        }
+        function getValX(px) {
+            return ((px - padding) / (canvas.width - padding * 2)) * xMax;
+        }
+        function getValY(py) {
+            return ((canvas.height - padding - py) / (canvas.height - padding * 2)) * yMax;
+        }
+
+        canvas.addEventListener('mousedown', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            
+            // Check if clicking inside graph area
+            if (px < padding || px > canvas.width - padding || py < padding || py > canvas.height - padding) {
+                return;
+            }
+
+            const clickX = getValX(px);
+            const clickY = getValY(py);
+
+            // Check if clicking on an existing point to remove it
+            const hitRadiusPx = 15;
+            let removed = false;
+            for (let i = 0; i < points.length; i++) {
+                const ptPx = getPx(points[i].x);
+                const ptPy = getPy(points[i].y);
+                const dist = Math.sqrt(Math.pow(ptPx - px, 2) + Math.pow(ptPy - py, 2));
+                if (dist < hitRadiusPx) {
+                    points.splice(i, 1);
+                    removed = true;
+                    break;
+                }
+            }
+
+            // If not removed, add new point
+            if (!removed) {
+                points.push({x: clickX, y: clickY});
+            }
+
+            drawGraph();
+            runAnalysis();
+        });
+
+        function drawGraph() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            // Vertical lines
+            for (let i = 0; i <= 8; i++) {
+                const x = i * 0.1;
+                const px = getPx(x);
+                ctx.moveTo(px, padding);
+                ctx.lineTo(px, canvas.height - padding);
+            }
+            // Horizontal lines
+            for (let i = 0; i <= 8; i++) {
+                const y = i * 1.0;
+                const py = getPy(y);
+                ctx.moveTo(padding, py);
+                ctx.lineTo(canvas.width - padding, py);
+            }
+            ctx.stroke();
+
+            // Draw Axes
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, canvas.height - padding);
+            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.stroke();
+
+            // Axis Labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Current I (A)', canvas.width / 2, canvas.height - 15);
+            
+            ctx.save();
+            ctx.translate(20, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Voltage V (V)', 0, 0);
+            ctx.restore();
+
+            // Tick Labels
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 8; i++) {
+                const x = i * 0.1;
+                ctx.fillText(x.toFixed(1), getPx(x), canvas.height - padding + 20);
+            }
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i <= 8; i++) {
+                const y = i * 1.0;
+                ctx.fillText(y.toFixed(1), padding - 10, getPy(y));
+            }
+
+            // Perform Regression Math for Drawing Line
+            let m = 0; let c = 0;
+            if (points.length >= 2) {
+                let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+                for (let p of points) {
+                    sumX += p.x;
+                    sumY += p.y;
+                    sumXY += p.x * p.y;
+                    sumX2 += p.x * p.x;
+                }
+                const N = points.length;
+                const delta = N * sumX2 - (sumX * sumX);
+                if (delta !== 0) {
+                    m = (N * sumXY - sumX * sumY) / delta;
+                    c = (sumX2 * sumY - sumX * sumXY) / delta;
+
+                    // Draw Line of Best Fit
+                    ctx.strokeStyle = '#ec4899';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    // Draw from x=0 to x=xMax
+                    const py0 = getPy(m * 0 + c);
+                    const pyMax = getPy(m * xMax + c);
+                    
+                    // Only draw inside bounds visually if possible, but canvas clips anyway or we just draw
+                    ctx.moveTo(getPx(0), py0);
+                    ctx.lineTo(getPx(xMax), pyMax);
+                    ctx.stroke();
+                }
+            }
+
+            // Draw Points
+            for (let p of points) {
+                const px = getPx(p.x);
+                const py = getPy(p.y);
+                ctx.fillStyle = '#3b82f6';
+                ctx.shadowColor = '#3b82f6';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(px, py, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Draw residual line to fit
+                if (points.length >= 2) {
+                    const fitY = m * p.x + c;
+                    const pyFit = getPy(fitY);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px, pyFit);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+
+        // --- Math Engine ---
+        function runAnalysis() {
+            if (points.length < 3) {
+                analysisContainer.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 2rem;">Add at least 3 points to run statistical analysis!</div>`;
+                return;
+            }
+
+            const N = points.length;
+            let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+            for (let p of points) {
+                sumX += p.x;
+                sumY += p.y;
+                sumXY += p.x * p.y;
+                sumX2 += p.x * p.x;
+            }
+
+            const delta = N * sumX2 - (sumX * sumX);
+            if (delta === 0) {
+                analysisContainer.innerHTML = `<div style="color: var(--danger);">Points are perfectly vertical, regression impossible!</div>`;
+                return;
+            }
+
+            const m = (N * sumXY - sumX * sumY) / delta;
+            const c = (sumX2 * sumY - sumX * sumXY) / delta;
+
+            let sumResSq = 0;
+            for (let p of points) {
+                const fitY = m * p.x + c;
+                sumResSq += Math.pow(p.y - fitY, 2);
+            }
+            const s_y = Math.sqrt(sumResSq / (N - 2));
+
+            const deltaM = s_y * Math.sqrt(N / delta);
+            const deltaC = s_y * Math.sqrt(sumX2 / delta);
+
+            const html = `
+                <h3 style="margin-bottom: 1rem; color: var(--accent-glow);">Linear Regression Results</h3>
+                
+                <p><strong>1. Dataset Sums (\(N=${N}\)):</strong></p>
+                <p>\\( \\sum x = ${sumX.toFixed(3)}, \\quad \\sum y = ${sumY.toFixed(3)} \\)</p>
+                <p>\\( \\sum x^2 = ${sumX2.toFixed(3)}, \\quad \\sum xy = ${sumXY.toFixed(3)} \\)</p>
+                <p>\\( \\Delta = N \\sum x^2 - (\\sum x)^2 = ${delta.toFixed(4)} \\)</p>
+
+                <p style="margin-top: 1rem;"><strong>2. Line of Best Fit (\(y = mx + c\)):</strong></p>
+                <p>Resistance (Slope \(m\)):</p>
+                <p>\\( R = \\frac{N \\sum xy - \\sum x \\sum y}{\\Delta} = ${m.toFixed(3)}\\,\\Omega \\)</p>
+                <p>Zero-offset (Intercept \(c\)):</p>
+                <p>\\( V_0 = \\frac{\\sum x^2 \\sum y - \\sum x \\sum xy}{\\Delta} = ${c.toFixed(3)}\\text{ V} \\)</p>
+
+                <p style="margin-top: 1rem;"><strong>3. Statistical Uncertainties:</strong></p>
+                <p>Variance of residuals \\(s_y = \\sqrt{\\frac{\\sum(y_i - y_{fit})^2}{N-2}} = ${s_y.toFixed(4)} \\)</p>
+                <p>Uncertainty in Resistance:</p>
+                <p>\\( \\Delta R = s_y \\sqrt{\\frac{N}{\\Delta}} = ${deltaM.toFixed(3)}\\,\\Omega \\)</p>
+                <p>Uncertainty in Offset:</p>
+                <p>\\( \\Delta V_0 = s_y \\sqrt{\\frac{\\sum x^2}{\\Delta}} = ${deltaC.toFixed(3)}\\text{ V} \\)</p>
+
+                <div style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(236, 72, 153, 0.1); border: 1px solid var(--accent-glow); border-radius: 12px;">
+                    <strong>Final Scientific Answers:</strong><br><br>
+                    <div style="font-size: 1.2rem; margin-bottom: 0.5rem; font-weight: bold;">
+                        \\( R = (${m.toFixed(1)} \\pm ${deltaM.toFixed(1)})\\,\\Omega \\)
+                    </div>
+                    <div style="font-size: 1.2rem; font-weight: bold;">
+                        \\( V_0 = (${c.toFixed(2)} \\pm ${deltaC.toFixed(2)})\\text{ V} \\)
+                    </div>
+                </div>
+            `;
+
+            analysisContainer.innerHTML = html;
+            
+            if (window.MathJax) {
+                MathJax.typesetPromise([analysisContainer]).catch(function (err) {
+                    console.error('MathJax error: ', err.message);
+                });
+            }
+        }
+
+        // Initialize layout and load data
+        resize();
+        loadProblemData();
+
+    </script>
+</body>
+</html>
